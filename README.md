@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://via.placeholder.com/150x150/0a192f/4a8fe7?text=A" alt="Analytica Logo" width="120" />
+  
   <h1>Analytica: Interlinked Ecosystem</h1>
   <p><strong>Plataforma Profissional de Monitoramento e Gestão de Infraestruturas Corporativas</strong></p>
   
