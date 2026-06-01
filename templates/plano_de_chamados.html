@@ -1,0 +1,659 @@
+{% extends 'base.html' %}
+
+{% block title %}Analytica - Contatos BMS{% endblock %}
+
+{% block head %}
+<meta charset="UTF-8">
+    <style>
+        /* Estilos específicos para a página de Chamados/Contatos */
+        .page-header {
+            margin-bottom: 2rem;
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        .page-header h1 {
+            font-size: 2.2rem;
+            color: var(--text-primary);
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .page-description {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        /* Filtros e controles */
+        .contacts-filters-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            align-items: center;
+            background: rgba(17, 34, 64, 0.5);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(42, 74, 127, 0.2);
+            position: relative;
+            z-index: 50;
+        }
+
+        .contacts-dropdown {
+            position: relative;
+            z-index: 50;
+        }
+
+        .contacts-dropdown-btn {
+            background: rgba(42, 74, 127, 0.3);
+            color: var(--text-secondary);
+            padding: 0.8rem 1rem;
+            border: 1px solid rgba(42, 74, 127, 0.4);
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            min-width: 180px;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: var(--transition);
+        }
+
+        .contacts-dropdown-btn:hover {
+            background: rgba(42, 74, 127, 0.5);
+            border-color: var(--accent-blue);
+        }
+
+        .contacts-dropdown-content {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            background: var(--dark-blue-2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(42, 74, 127, 0.4);
+            border-radius: var(--border-radius);
+            z-index: 60;
+            overflow: hidden;
+            margin-top: 0.5rem;
+            max-height: 300px;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .contacts-dropdown-content.active {
+            display: block;
+        }
+
+        .contacts-dropdown-content a {
+            color: var(--text-secondary);
+            padding: 0.8rem 1rem;
+            text-decoration: none;
+            display: block;
+            transition: var(--transition);
+        }
+
+        .contacts-dropdown-content a:hover {
+            background: rgba(42, 74, 127, 0.3);
+            color: var(--accent-blue);
+        }
+
+        .contacts-search-input {
+            padding: 0.8rem 1rem;
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(42, 74, 127, 0.4);
+            background: rgba(17, 34, 64, 0.3);
+            color: var(--text-primary);
+            min-width: 250px;
+            transition: var(--transition);
+            flex: 1;
+        }
+
+        .contacts-search-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            background: rgba(17, 34, 64, 0.5);
+        }
+
+        .contacts-btn-success {
+            background: rgba(39, 174, 96, 0.3);
+            color: var(--text-primary);
+            padding: 0.8rem 1.2rem;
+            border-radius: var(--border-radius);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            transition: var(--transition);
+            border: 1px solid rgba(39, 174, 96, 0.4);
+            gap: 0.5rem;
+        }
+
+        .contacts-btn-success:hover {
+            background: rgba(46, 204, 113, 0.4);
+            transform: translateY(-2px);
+        }
+
+        /* Tabela de contatos - cabeçalho não transparente */
+        .contacts-table-container {
+            background: rgba(17, 34, 64, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(42, 74, 127, 0.2);
+            overflow: hidden;
+            margin-bottom: 2rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        .contacts-table-wrapper {
+            overflow-x: auto;
+            overflow-y: auto;
+            max-height: 60vh;
+        }
+
+        .contacts-contacts-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1000px;
+        }
+
+        .contacts-contacts-table th {
+            background: var(--dark-blue-3);
+            color: var(--text-primary);
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            border-bottom: 1px solid rgba(42, 74, 127, 0.4);
+            z-index: 20;
+        }
+
+        .contacts-contacts-table td {
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid rgba(42, 74, 127, 0.2);
+            color: var(--text-secondary);
+        }
+
+        .contacts-contacts-table tr:hover td {
+            background: rgba(42, 74, 127, 0.2);
+            color: var(--text-primary);
+        }
+
+        .contacts-group-row {
+            background: rgba(52, 152, 219, 0.2);
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .contacts-group-row td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(42, 74, 127, 0.4);
+        }
+
+        .contacts-btn-qr,
+        .contacts-btn-edit {
+            background: rgba(74, 143, 231, 0.2);
+            color: var(--text-primary);
+            border: 1px solid rgba(74, 143, 231, 0.4);
+            padding: 0.4rem 0.8rem;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .contacts-btn-edit {
+            background: rgba(255, 193, 7, 0.08);
+            border-color: rgba(255, 193, 7, 0.18);
+        }
+
+        .contacts-btn-qr:hover {
+            background: rgba(74, 143, 231, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .contacts-btn-edit:hover {
+            transform: translateY(-2px);
+            color: #ffd54a;
+            background: rgba(255, 193, 7, 0.14);
+            border-color: rgba(255, 193, 7, 0.3);
+        }
+
+        /* Modal QR Code Improved */
+        #contacts-qr-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(10, 25, 47, 0.85);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(8px);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #contacts-qr-modal.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .contacts-modal-content {
+            background: rgba(23, 42, 69, 0.95);
+            padding: 2.5rem;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 90%;
+            width: 400px;
+            border: 1px solid rgba(100, 255, 218, 0.2);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            position: relative;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+
+        #contacts-qr-modal.active .contacts-modal-content {
+            transform: scale(1);
+        }
+
+        .contacts-modal-content h3 {
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .contacts-close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1.5rem;
+            color: var(--text-secondary);
+            font-size: 1.8rem;
+            cursor: pointer;
+            transition: var(--transition);
+            line-height: 1;
+        }
+
+        .contacts-close-btn:hover {
+            color: var(--accent-blue);
+            transform: rotate(90deg);
+        }
+
+        .contacts-qr-image-container {
+            background: white;
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 0 auto 1.5rem auto;
+            display: inline-block;
+        }
+
+        .contacts-qr-image {
+            max-width: 100%;
+            width: 200px;
+            height: 200px;
+            display: block;
+        }
+
+        .contacts-modal-subtitle {
+            color: var(--text-secondary);
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 900px) {
+            .contacts-filters-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .contacts-dropdown,
+            .contacts-search-input {
+                width: 100%;
+            }
+
+            .contacts-btn-success {
+                justify-content: center;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+            <div class="page-header">
+                <h1>Analytica</h1>
+                <p class="page-description">Interlinked Ecosystem</p>
+            </div>
+
+            <!-- Filtros e Botao Novo Contato -->
+            <div class="contacts-filters-container">
+                <!-- Dropdown de Prédio -->
+                <div class="contacts-dropdown" id="contacts-filtro-predio" data-current="todos">
+                    <button class="contacts-dropdown-btn">
+                        <span>Todos os Prédios</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="contacts-dropdown-content">
+                        <a href="#" data-filter="todos">Todos</a>
+                        <a href="#" data-filter="Torre Sul">Torre Sul</a>
+                        <a href="#" data-filter="Torre Norte">Torre Norte</a>
+                        <a href="#" data-filter="Edifício Central">Edifício Central</a>
+                        <a href="#" data-filter="Chic Shopping">Chic Shopping</a>
+                    </div>
+                </div>
+
+                <!-- Dropdown de Função -->
+                <div class="contacts-dropdown" id="contacts-filtro-funcao" data-current="todas">
+                    <button class="contacts-dropdown-btn">
+                        <span>Todas as Funções</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="contacts-dropdown-content">
+                        <a href="#" data-filter="todas">Todas</a>
+                        {% for func in funcoes_disponiveis %}
+                        <a href="#" data-filter="{{ func }}">{{ func }}</a>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Dropdown de Categoria -->
+                <div class="contacts-dropdown" id="contacts-filtro-categoria" data-current="todas">
+                    <button class="contacts-dropdown-btn">
+                        <span>Todas as Categorias</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="contacts-dropdown-content">
+                        <a href="#" data-filter="todas">Todas</a>
+                        <a href="#" data-filter="sdai">SDAI</a>
+                        <a href="#" data-filter="hidraulica">Hidráulica</a>
+                        <a href="#" data-filter="ar condicionado">Ar Condicionado</a>
+                        <a href="#" data-filter="eletrica">Elétrica</a>
+                        <a href="#" data-filter="automacao">Automação</a>
+                        <a href="#" data-filter="recepcao">Recepção</a>
+                        <a href="#" data-filter="segurança">Segurança</a>
+                        <a href="#" data-filter="limpeza">Limpeza</a>
+                    </div>
+                </div>
+
+                <!-- Campo de busca full-text -->
+                <input type="search" id="contacts-search-nome" class="contacts-search-input"
+                    placeholder="Buscar termo em qualquer coluna..." />
+
+                <!-- Botao de adicionar novo contato -->
+                <a href="{{ url_for('add_contato') }}" class="contacts-btn-success">
+                    <i class="fas fa-plus"></i>
+                    <span>Novo Contato</span>
+                </a>
+            </div>
+
+            <!-- Tabela de contatos -->
+            <div class="contacts-table-container">
+                <div class="contacts-table-wrapper">
+                    <table class="contacts-contacts-table">
+                        <thead>
+                            <tr>
+                                <th>Prédio</th>
+                                <th>Empresa</th>
+                                <th>Função</th>
+                                <th>Categoria</th>
+                                <th>Ação</th>
+                                <th>Nome</th>
+                                <th>Telefone 1</th>
+                                <th>Telefone 2</th>
+                                <th>E-mail</th>
+                                <th>Observação</th>
+                                <th>Data Atualização</th>
+                                <th>QR CODE</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="contacts-contatos-body">
+                            {% for grupo in contatos | groupby('funcao') %}
+                            <tr class="contacts-group-row" data-group="{{ grupo.grouper }}">
+                                <td colspan="13">Contatos – {{ grupo.grouper }}</td>
+                            </tr>
+                            {% for contato in grupo.list %}
+                            <tr data-predio="{{ contato.predio }}" data-funcao="{{ contato.funcao }}"
+                                data-categoria="{{ contato.categoria }}" class="contacts-contact-row">
+                                <td data-col="Prédio">{{ contato.predio }}</td>
+                                <td data-col="Empresa">{{ contato.empresa }}</td>
+                                <td data-col="Função">{{ contato.funcao }}</td>
+                                <td data-col="Categoria">{{ contato.categoria }}</td>
+                                <td data-col="Ação">{{ contato.acao }}</td>
+                                <td data-col="Nome">{{ contato.nome }}</td>
+                                <td data-col="Telefone 1" class="phone-number">{{ contato.telefone1 }}</td>
+                                <td data-col="Telefone 2">{{ contato.telefone2 }}</td>
+                                <td data-col="E-mail">{{ contato.email }}</td>
+                                <td data-col="Observação">{{ contato.observacao }}</td>
+                                <td data-col="Data Atualização">{{ contato.data_atualizacao }}</td>
+                                <td data-col="QR CODE">
+                                    <button class="contacts-btn-qr" data-contato-id="{{ contato.id }}">
+                                        <i class="fas fa-qrcode"></i>
+                                    </button>
+                                </td>
+                                <td data-col="Ações">
+                                    <a href="/edit_contato/{{ contato.id }}" class="contacts-btn-edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+    <!-- Modal QR Code -->
+    <div id="contacts-qr-modal">
+        <div class="contacts-modal-content">
+            <span class="contacts-close-btn">&times;</span>
+            <h3>Contato via WhatsApp</h3>
+            <div class="contacts-qr-image-container">
+                <img id="contacts-qr-image" class="contacts-qr-image" src="" alt="QR Code">
+            </div>
+            <p id="contacts-qr-text" style="color: var(--text-primary); font-weight: bold;"></p>
+            <p class="contacts-modal-subtitle">Escaneie para iniciar conversa</p>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const qrModal = document.getElementById('contacts-qr-modal');
+            const qrImage = document.getElementById('contacts-qr-image');
+            const qrText = document.getElementById('contacts-qr-text');
+            const closeBtn = document.querySelector('.contacts-close-btn');
+
+            // Abrir Modal
+            document.querySelectorAll('.contacts-btn-qr').forEach(btn => {
+                btn.addEventListener('click', function (e) {
+                    e.preventDefault();
+
+                    // Encontrar a linha (tr) pai do Botao clicado
+                    const row = this.closest('tr');
+
+                    // Extrair dados da linha
+                    const nome = row.querySelector('[data-col="Nome"]').innerText.trim();
+                    let telefone = row.querySelector('[data-col="Telefone 1"]').innerText.trim();
+
+                    // Limpar telefone (manter apenas Numeros)
+                    const telefoneLimpo = telefone.replace(/\D/g, '');
+
+                    console.log(`Gerando QR para: ${nome}, Tel: ${telefoneLimpo}`);
+
+                    if (telefoneLimpo.length >= 10) {
+                        // Construir URL do WhatsApp
+                        // Ex: 5511999999999 (Brasil + DDD + Numero)
+                        // Se não tiver código de país, assume 55 (Brasil) por padrão se começar com DDD
+                        let fullNumber = telefoneLimpo;
+                        if (!fullNumber.startsWith('55') && fullNumber.length <= 11) {
+                            fullNumber = '55' + fullNumber;
+                        }
+
+                        const waUrl = `https://wa.me/${fullNumber}`;
+
+                        // Gerar QR Code via API
+                        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(waUrl)}`;
+
+                        qrImage.src = qrApiUrl;
+                        qrText.innerText = `${nome}: ${telefone}`;
+
+                        // Exibir Modal
+                        qrModal.classList.add('active');
+                    } else {
+                        alert('Numero de telefone inválido para gerar QR Code.');
+                    }
+                });
+            });
+
+            // Fechar Modal (Botao X)
+            closeBtn.addEventListener('click', function () {
+                qrModal.classList.remove('active');
+            });
+
+            // Fechar Modal (Clicar fora)
+            qrModal.addEventListener('click', function (e) {
+                if (e.target === qrModal) {
+                    qrModal.classList.remove('active');
+                }
+            });
+
+            // Fechar com ESC
+            document.addEventListener('keydown', function (event) {
+                if (event.key === "Escape" && qrModal.classList.contains('active')) {
+                    qrModal.classList.remove('active');
+                }
+            });
+
+            // ------------------------------------------------------------
+            // LÓGICA DE FILTROS E BUSCA
+            // ------------------------------------------------------------
+            const rows = document.querySelectorAll('.contacts-contact-row');
+            const groupRows = document.querySelectorAll('.contacts-group-row');
+            const searchInput = document.getElementById('contacts-search-nome');
+            const filterPredio = document.getElementById('contacts-filtro-predio');
+            const filterFuncao = document.getElementById('contacts-filtro-funcao');
+            const filterCategoria = document.getElementById('contacts-filtro-categoria');
+
+            // Função para remover acentos e padronizar
+            function normalizeString(str) {
+                if (!str) return '';
+                return str.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+            }
+
+            function updateFilters() {
+                const term = normalizeString(searchInput.value);
+                
+                // O data-current pode não bater com o nome exato se o HTML foi modificado
+                // Então usamos o texto do botão (span) ou o data-current
+                const spanPredio = filterPredio.querySelector('span').innerText.trim();
+                const spanFuncao = filterFuncao.querySelector('span').innerText.trim();
+                const spanCategoria = filterCategoria.querySelector('span').innerText.trim();
+
+                const isTodosPredios = filterPredio.dataset.current === 'todos' || spanPredio === 'Todos os Prédios';
+                const isTodasFuncoes = filterFuncao.dataset.current === 'todas' || spanFuncao === 'Todas as Funções';
+                const isTodasCategorias = filterCategoria.dataset.current === 'todas' || spanCategoria === 'Todas as Categorias';
+
+                const predioVal = normalizeString(spanPredio);
+                const funcaoVal = normalizeString(spanFuncao);
+                const categoriaVal = normalizeString(spanCategoria);
+
+                let groupVisibleCount = {};
+                groupRows.forEach(gr => {
+                    groupVisibleCount[gr.dataset.group] = 0;
+                });
+
+                rows.forEach(row => {
+                    const rPredio = normalizeString(row.dataset.predio);
+                    const rFuncao = normalizeString(row.dataset.funcao);
+                    const rCategoria = normalizeString(row.dataset.categoria);
+
+                    // A checagem verifica se é "Todos" OU se contém a string
+                    const matchPredio = isTodosPredios || rPredio.includes(predioVal) || predioVal.includes(rPredio);
+                    const matchFuncao = isTodasFuncoes || rFuncao.includes(funcaoVal) || funcaoVal.includes(rFuncao);
+                    const matchCategoria = isTodasCategorias || rCategoria.includes(categoriaVal) || categoriaVal.includes(rCategoria);
+
+                    let matchTerm = false;
+                    if (!term) {
+                        matchTerm = true;
+                    } else {
+                        const cells = row.querySelectorAll('td');
+                        cells.forEach(cell => {
+                            if (normalizeString(cell.innerText).includes(term)) {
+                                matchTerm = true;
+                            }
+                        });
+                    }
+
+                    if (matchPredio && matchFuncao && matchCategoria && matchTerm) {
+                        row.style.display = '';
+                        if (groupVisibleCount[row.dataset.funcao] !== undefined) {
+                            groupVisibleCount[row.dataset.funcao]++;
+                        } else {
+                            groupVisibleCount[row.dataset.funcao] = 1;
+                        }
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                // Ocultar cabeçalhos de grupos que não possuem linhas visíveis
+                groupRows.forEach(gr => {
+                    const count = groupVisibleCount[gr.dataset.group] || 0;
+                    gr.style.display = count > 0 ? '' : 'none';
+                });
+            }
+
+            // Listeners para os Dropdowns
+            document.querySelectorAll('.contacts-dropdown').forEach(dropdown => {
+                const btn = dropdown.querySelector('.contacts-dropdown-btn');
+                const content = dropdown.querySelector('.contacts-dropdown-content');
+                const span = btn.querySelector('span');
+
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    // Fecha outros abertos
+                    document.querySelectorAll('.contacts-dropdown-content').forEach(c => {
+                        if (c !== content) c.classList.remove('active');
+                    });
+                    content.classList.toggle('active');
+                });
+
+                content.querySelectorAll('a').forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const filterVal = link.dataset.filter;
+                        const filterText = link.innerText;
+
+                        dropdown.dataset.current = filterVal;
+                        span.innerText = filterText;
+                        content.classList.remove('active');
+                        updateFilters();
+                    });
+                });
+            });
+
+            // Fechar dropdowns ao clicar fora
+            document.addEventListener('click', () => {
+                document.querySelectorAll('.contacts-dropdown-content').forEach(c => {
+                    c.classList.remove('active');
+                });
+            });
+
+            // Listener para o campo de busca
+            if(searchInput) {
+                searchInput.addEventListener('input', updateFilters);
+            }
+        });
+    </script>
+{% endblock %}

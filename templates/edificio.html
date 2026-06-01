@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Analytica - {{ building.name }}{% endblock %}
+{% block head %}
+<meta charset="UTF-8">
+<script src="{{ url_for('static', filename='vendor/plotly.min.js') }}"></script>
+{% endblock %}
+{% block content %}
+<header class="topbar">
+    <div class="page-title">
+        <h1>Analytica</h1>
+        <p>Interlinked Ecosystem</p>
+    </div>
+    <div class="toolbar">
+        <span class="badge">{{ building.name }}</span>
+        <a class="button secondary" href="{{ url_for('dashboard') }}">Voltar ao dashboard</a>
+    </div>
+</header>
+
+<section class="grid cards">
+    <div class="card"><span class="metric-label">Andares</span><strong class="metric-value">{{ building.floors_count }}</strong></div>
+    <div class="card"><span class="metric-label">Sensores</span><strong class="metric-value">{{ summary.total_sensors }}</strong></div>
+    <div class="card"><span class="metric-label">Temp. media atual</span><strong class="metric-value">{{ summary.avg_temp }}C</strong></div>
+    <div class="card"><span class="metric-label">Chamados abertos</span><strong class="metric-value">{{ summary.open_tickets }}</strong></div>
+</section>
+
+<section class="grid two" style="margin-top:16px;">
+    <div class="card"><h2>Temperatura interna hoje</h2><div id="tempLine" class="chart"></div></div>
+    <div class="card"><h2>Status dos equipamentos</h2><div id="equipmentBars" class="chart"></div></div>
+</section>
+
+<section class="card" style="margin-top:16px;">
+    <h2>Operacao por andar</h2>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Andar</th>
+                    <th>Status do Fancoil</th>
+                    <th>% VAG</th>
+                    <th>Temp. Setpoint</th>
+                    <th>Temp. Sensor</th>
+                    <th>Alarme</th>
+                    <th>Iluminacao</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for row in floor_system_rows %}
+                <tr>
+                    <td>{{ row.floor }}</td>
+                    <td><span class="badge {{ 'ok' if row.fancoil_status == 'Ligado' else 'warn' }}">{{ row.fancoil_status }}</span></td>
+                    <td>{{ row.vag_percent }}%</td>
+                    <td>{{ "%.1f"|format(row.setpoint_temp) }}C</td>
+                    <td>{{ "%.1f"|format(row.sensor_temp) }}C</td>
+                    <td><span class="badge {{ 'danger' if row.alarm == 'Sim' else 'ok' }}">{{ row.alarm }}</span></td>
+                    <td><span class="badge {{ 'ok' if row.lighting == 'Ligada' else 'warn' }}">{{ row.lighting }}</span></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="grid two" style="margin-top:16px;">
+    <div class="card">
+        <h2>Chamados recentes</h2>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Chamado</th><th>Andar</th><th>Solicitacao</th><th>Observacao</th><th>Status</th><th>SLA</th></tr></thead>
+                <tbody>
+                {% for item in tickets %}
+                    <tr>
+                        <td>{{ item.numero }}</td>
+                        <td>{{ item.andar }}</td>
+                        <td>{{ item.temp_action }}</td>
+                        <td>{{ item.observacao_cliente }}</td>
+                        <td><span class="badge {{ 'ok' if item.status == 'fechado' else 'warn' }}">{{ item.status }}</span></td>
+                        <td><span class="badge {{ 'danger' if item.sla_overdue else 'ok' }}">{% if item.sla_overdue %}<i class="fa-solid fa-triangle-exclamation"></i>&nbsp;{% endif %}{{ item.sla_status }}</span></td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card">
+        <h2>Historico CAG</h2>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Equipamento</th><th>Status</th><th>Horario</th><th>Origem</th></tr></thead>
+                <tbody>
+                {% for op in cag_ops %}
+                    <tr><td>{{ op.equipment_name }}</td><td>{{ op.status }}</td><td>{{ op.event_time }}</td><td>{{ op.command_origin }}</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+const layout = {paper_bgcolor:"rgba(0,0,0,0)", plot_bgcolor:"rgba(0,0,0,0)", font:{color:"#edf4ff"}, margin:{l:45,r:20,t:20,b:45}};
+Plotly.react("tempLine", [{type:"scatter", mode:"lines", x: {{ temp_series['labels']|safe }}, y: {{ temp_series['values']|safe }}, line:{color:"#5cc8ff", width:3}}], layout, {displayModeBar:false, responsive:true});
+Plotly.react("equipmentBars", [{type:"bar", x: {{ equipment_status['labels']|safe }}, y: {{ equipment_status['values']|safe }}, marker:{color:["#72e0a8","#ff6b7a","#f6c85f"]}}], layout, {displayModeBar:false, responsive:true});
+</script>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Analytica - Notificações{% endblock %}
+{% block head %}
+<meta charset="UTF-8">{% endblock %}
+{% block content %}
+<header class="topbar">
+    <div class="page-title">
+        <h1>Analytica</h1>
+        <p>Interlinked Ecosystem</p>
+    </div>
+</header>
+
+<section class="card">
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Severidade</th><th>Edifício</th><th>Mensagem</th><th>Criado em</th></tr></thead>
+            <tbody>
+            {% for item in notifications %}
+                <tr>
+                    <td><span class="badge {{ 'danger' if item.severity == 'critical' else 'warn' if item.severity == 'warning' else '' }}">{{ item.severity }}</span></td>
+                    <td>{{ item.building_name }}</td>
+                    <td>{{ item.message }}</td>
+                    <td>{{ item.created_at }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,1361 @@
+{% extends 'base.html' %}
+
+{% block title %}Busca Inteligente | Analytica{% endblock %}
+
+{% block head %}
+<meta charset="UTF-8">
+    <!-- Vis.js para visualizacao de rede -->
+    <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.2/standalone/umd/vis-network.min.js"></script>
+
+    <style>
+        /* Estilos especificos para a pagina de busca */
+
+        /* Area de Busca Hero */
+        .search-hero {
+            max-width: 900px;
+            margin: 2rem auto 3rem;
+            text-align: center;
+            animation: fadeIn 0.8s ease-out forwards;
+        }
+
+        .search-hero h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(90deg, #fff, var(--text-secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .search-hero p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Barra de Busca */
+        .search-wrapper {
+            position: relative;
+            max-width: 700px;
+            margin: 0 auto 1.5rem;
+        }
+
+        .search-form {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50px;
+            padding: 5px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            transition: var(--transition);
+        }
+
+        .search-form:focus-within {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 20px rgba(74, 143, 231, 0.3);
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .search-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 15px 25px;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .search-button {
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 5px;
+            transition: var(--transition);
+        }
+
+        .search-button:hover {
+            background: #64b5f6;
+            transform: scale(1.05);
+        }
+
+        /* Sugestoes de busca */
+        .search-suggestions {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 1.5rem;
+        }
+
+        .suggestion-tag {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: var(--transition);
+        }
+
+        .suggestion-tag:hover {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+            background: rgba(74, 143, 231, 0.1);
+        }
+
+        /* Animacao de varredura de diretorios */
+        .directory-scan-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 20, 40, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .directory-scan-animation.active {
+            opacity: 1;
+        }
+
+        .scan-container {
+            text-align: center;
+            max-width: 500px;
+            animation: pulseGlow 2s infinite alternate;
+        }
+
+        .scan-line {
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+            position: relative;
+            margin: 2rem 0;
+            animation: scanMove 1.8s ease-in-out infinite;
+        }
+
+        @keyframes scanMove {
+
+            0%,
+            100% {
+                transform: translateY(0);
+                opacity: 0.5;
+                width: 80%;
+            }
+
+            50% {
+                transform: translateY(25px);
+                opacity: 1;
+                width: 100%;
+            }
+        }
+
+        @keyframes pulseGlow {
+            0% {
+                transform: scale(1);
+                filter: drop-shadow(0 0 10px rgba(74, 143, 231, 0.3));
+            }
+
+            100% {
+                transform: scale(1.02);
+                filter: drop-shadow(0 0 20px rgba(74, 143, 231, 0.6));
+            }
+        }
+
+        .folders-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin: 2rem 0;
+        }
+
+        .folder-item {
+            font-size: 2.2rem;
+            color: var(--accent-primary);
+            opacity: 0.3;
+            animation: folderPulse 1.2s infinite alternate;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .folder-item:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+
+        .folder-item:nth-child(3) {
+            animation-delay: 0.2s;
+        }
+
+        .folder-item:nth-child(4) {
+            animation-delay: 0.3s;
+        }
+
+        .folder-item:nth-child(5) {
+            animation-delay: 0.4s;
+        }
+
+        .folder-item:nth-child(6) {
+            animation-delay: 0.5s;
+        }
+
+        .folder-item:nth-child(7) {
+            animation-delay: 0.6s;
+        }
+
+        .folder-item:nth-child(8) {
+            animation-delay: 0.7s;
+        }
+
+        @keyframes folderPulse {
+            0% {
+                opacity: 0.3;
+                transform: translateY(0) scale(1);
+                background: rgba(255, 255, 255, 0.05);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(-8px) scale(1.1);
+                background: rgba(74, 143, 231, 0.15);
+            }
+        }
+
+        .scan-text {
+            color: var(--accent-primary);
+            font-size: 1.3rem;
+            margin-top: 2rem;
+            font-weight: 500;
+            animation: textPulse 1.5s infinite alternate;
+        }
+
+        @keyframes textPulse {
+            0% {
+                opacity: 0.7;
+                letter-spacing: 0px;
+            }
+
+            100% {
+                opacity: 1;
+                letter-spacing: 1px;
+            }
+        }
+
+        /* Container de resultados */
+        .results-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding-bottom: 3rem;
+        }
+
+        /* Transicao suave para resultados */
+        .results-grid {
+            opacity: 0;
+            animation: fadeInUp 0.8s ease forwards;
+            animation-delay: 0.3s;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Barra de Filtros */
+        .filters-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 2rem 0;
+            background: rgba(25, 45, 85, 0.8);
+            backdrop-filter: blur(12px);
+            padding: 1rem 1.5rem;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-light);
+            flex-wrap: wrap;
+            gap: 1rem;
+            animation: slideDown 0.6s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .filter-pills {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+
+        .filter-pill {
+            background: transparent;
+            border: 1px solid var(--border-light);
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
+        }
+
+        .filter-pill:hover,
+        .filter-pill.active {
+            background: rgba(74, 143, 231, 0.2);
+            color: var(--accent-primary);
+            border-color: var(--accent-primary);
+            transform: translateY(-2px);
+        }
+
+        .filter-count {
+            background: rgba(74, 143, 231, 0.2);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            color: var(--accent-primary);
+        }
+
+        /* Opcoes de visualizacao */
+        .view-options {
+            display: flex;
+            gap: 5px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 4px;
+            border-radius: 10px;
+        }
+
+        .view-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .view-btn.active,
+        .view-btn:hover {
+            background: rgba(74, 143, 231, 0.2);
+            color: var(--accent-primary);
+            transform: scale(1.1);
+        }
+
+        /* Grid de Resultados */
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        /* Card de Resultado - MELHORADO */
+        .result-card {
+            background: rgba(35, 50, 85, 0.9);
+            border: 1px solid rgba(100, 150, 255, 0.15);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            backdrop-filter: blur(10px);
+            animation: cardAppear 0.5s ease forwards;
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        .result-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            background: rgba(45, 60, 95, 0.95);
+            border-color: rgba(74, 143, 231, 0.6);
+            box-shadow:
+                0 15px 35px rgba(0, 0, 0, 0.3),
+                0 0 0 1px rgba(74, 143, 231, 0.1);
+        }
+
+        @keyframes cardAppear {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Delay escalonado para os cards */
+        .result-card:nth-child(1) {
+            animation-delay: 0.1s;
+        }
+
+        .result-card:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .result-card:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+
+        .result-card:nth-child(4) {
+            animation-delay: 0.4s;
+        }
+
+        .result-card:nth-child(5) {
+            animation-delay: 0.5s;
+        }
+
+        .result-card:nth-child(6) {
+            animation-delay: 0.6s;
+        }
+
+        .result-card:nth-child(7) {
+            animation-delay: 0.7s;
+        }
+
+        .result-card:nth-child(8) {
+            animation-delay: 0.8s;
+        }
+
+        .result-card:nth-child(9) {
+            animation-delay: 0.9s;
+        }
+
+        .result-card:nth-child(10) {
+            animation-delay: 1.0s;
+        }
+
+        .card-header {
+            height: 160px;
+            background: linear-gradient(135deg, rgba(50, 80, 140, 0.7), rgba(25, 45, 85, 0.9));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        .card-header img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.7s ease;
+        }
+
+        .result-card:hover .card-header img {
+            transform: scale(1.15);
+        }
+
+        .file-icon-large {
+            font-size: 4rem;
+            color: rgba(255, 255, 255, 0.9);
+            opacity: 0.8;
+            transition: var(--transition);
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+        }
+
+        .result-card:hover .file-icon-large {
+            color: var(--accent-primary);
+            transform: scale(1.15) rotate(5deg);
+            filter: drop-shadow(0 4px 8px rgba(74, 143, 231, 0.4));
+        }
+
+        .file-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 6px 14px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: var(--transition);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .result-card:hover .file-badge {
+            background: var(--accent-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(74, 143, 231, 0.3);
+        }
+
+        .card-body {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.03), transparent);
+        }
+
+        .result-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 0.8rem;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .result-title:hover {
+            color: var(--accent-primary);
+            text-shadow: 0 0 10px rgba(74, 143, 231, 0.3);
+        }
+
+        .result-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.8rem;
+            color: rgba(200, 220, 255, 0.8);
+            margin-bottom: 1rem;
+        }
+
+        .result-meta i {
+            color: var(--accent-primary);
+            opacity: 0.8;
+        }
+
+        .result-snippet {
+            font-size: 0.9rem;
+            color: rgba(230, 240, 255, 0.9);
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+            flex-grow: 1;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 1rem;
+            margin-top: auto;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-icon {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-secondary);
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .btn-icon:hover {
+            background: rgba(74, 143, 231, 0.2);
+            color: var(--accent-primary);
+            border-color: rgba(74, 143, 231, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-icon.active {
+            color: var(--accent-primary);
+            background: rgba(74, 143, 231, 0.25);
+            border-color: var(--accent-primary);
+        }
+
+        .btn-primary-sm {
+            background: rgba(74, 143, 231, 0.15);
+            color: var(--accent-primary);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-decoration: none;
+            border: 1px solid rgba(74, 143, 231, 0.3);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary-sm:hover {
+            background: var(--accent-primary);
+            color: white;
+            box-shadow: 0 6px 15px rgba(74, 143, 231, 0.4);
+            transform: translateY(-2px);
+            border-color: var(--accent-primary);
+        }
+
+        /* Visualizacao em lista */
+        .results-grid.list-view {
+            grid-template-columns: 1fr;
+        }
+
+        .results-grid.list-view .result-card {
+            flex-direction: row;
+            min-height: 180px;
+        }
+
+        .results-grid.list-view .card-header {
+            width: 220px;
+            height: auto;
+            border-bottom: none;
+            border-right: 1px solid var(--border-light);
+        }
+
+        /* Sem Resultados */
+        .no-results {
+            text-align: center;
+            padding: 5rem 1rem;
+            background: rgba(25, 45, 85, 0.5);
+            border-radius: var(--border-radius);
+            border: 2px dashed rgba(255, 255, 255, 0.1);
+            margin-top: 2rem;
+            animation: fadeIn 0.8s ease;
+        }
+
+        .no-results i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+            color: var(--accent-primary);
+        }
+
+        /* Container de grafico */
+        .graph-container {
+            height: 300px;
+            margin-top: 3rem;
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            background: rgba(20, 35, 70, 0.7);
+            backdrop-filter: blur(10px);
+            animation: fadeIn 0.8s ease 0.5s forwards;
+            opacity: 0;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-container {
+            background: linear-gradient(135deg, #15274d, #0d1c3a);
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(74, 143, 231, 0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal-container {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-content {
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .modal-close {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: var(--text-muted);
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .modal-close:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.2);
+            transform: rotate(90deg);
+        }
+
+        /* Loading shimmer para cards */
+        .result-card.loading {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .result-card.loading::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg,
+                    transparent,
+                    rgba(255, 255, 255, 0.08),
+                    transparent);
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            100% {
+                left: 100%;
+            }
+        }
+
+        /* Responsividade para telas medias */
+        @media (max-width: 1100px) {
+            .results-grid {
+                grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            }
+        }
+
+        @media (max-width: 900px) {
+            .search-hero h1 {
+                font-size: 2rem;
+            }
+
+            .filters-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .view-options {
+                align-self: flex-end;
+            }
+
+            .results-grid.list-view .result-card {
+                flex-direction: column;
+            }
+
+            .results-grid.list-view .card-header {
+                width: 100%;
+                height: 150px;
+            }
+
+            .folders-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .search-hero h1 {
+                font-size: 1.8rem;
+            }
+
+            .search-hero p {
+                font-size: 1rem;
+            }
+
+            .filter-pills {
+                justify-content: center;
+            }
+
+            .folders-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .folder-item {
+                font-size: 1.8rem;
+                padding: 10px;
+            }
+        }
+
+        /* Animacoes */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+    </style>
+{% endblock %}
+
+{% block content %}
+    <!-- Animacao de varredura de diretorios -->
+    <div class="directory-scan-animation" id="scan-animation">
+        <div class="scan-container">
+            <div class="folders-grid">
+                <div class="folder-item"><i class="fas fa-folder"></i></div>
+                <div class="folder-item"><i class="fas fa-folder"></i></div>
+                <div class="folder-item"><i class="fas fa-folder"></i></div>
+                <div class="folder-item"><i class="fas fa-folder"></i></div>
+                <div class="folder-item"><i class="fas fa-folder"></i></div>
+                <div class="folder-item"><i class="fas fa-folder"></i></div>
+                <div class="folder-item"><i class="fas fa-folder"></i></div>
+                <div class="folder-item"><i class="fas fa-folder"></i></div>
+            </div>
+            <div class="scan-line"></div>
+            <div class="scan-text">Varrendo diretorios em busca de resultados...</div>
+        </div>
+    </div>
+
+    <!-- Area de Busca Hero -->
+    <div class="search-hero">
+        <h1>Analytica</h1>
+        <p>Interlinked Ecosystem</p>
+
+        <div class="search-wrapper">
+                    <form class="search-form" action="/search" method="GET" id="search-form">
+                        <input class="search-input" type="text" name="q" value="{{ query }}"
+                            placeholder="O que voce procura hoje?" autocomplete="off" id="search-input">
+                        <button class="search-button" type="submit" id="search-button">
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </form>
+                </div>
+
+                <div class="search-suggestions">
+                    {% if suggestions %}
+                    {% for suggestion in suggestions %}
+                    <div class="suggestion-tag">{{ suggestion }}</div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="suggestion-tag">Manutencao Chiller</div>
+                    <div class="suggestion-tag">Fancoil Relatorio</div>
+                    <div class="suggestion-tag">Projetos DWG</div>
+                    <div class="suggestion-tag">Contratos 2024</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Resultados -->
+            {% if query %}
+            <div class="results-container">
+                <div class="filters-bar">
+                    <div class="filter-pills" id="filter-pills">
+                        <button class="filter-pill active" data-filter="all">Todos <span class="filter-count">{{
+                                results|length }}</span></button>
+                        <button class="filter-pill" data-filter="pdf"><i class="far fa-file-pdf"></i> PDF</button>
+                        <button class="filter-pill" data-filter="word"><i class="far fa-file-word"></i> Word</button>
+                        <button class="filter-pill" data-filter="excel"><i class="far fa-file-excel"></i> Excel</button>
+                        <button class="filter-pill" data-filter="image"><i class="far fa-image"></i> Imagens</button>
+                    </div>
+
+                    <div class="view-options">
+                        <button class="view-btn active" onclick="setView('grid')" title="Grade"><i
+                                class="fas fa-th-large"></i></button>
+                        <button class="view-btn" onclick="setView('list')" title="Lista"><i
+                                class="fas fa-list"></i></button>
+                    </div>
+                </div>
+
+                <div id="results-count-display"
+                    style="margin-bottom: 1rem; color: var(--accent-primary); font-size: 0.9rem; font-weight: 500;">
+                    <i class="fas fa-search"></i> Exibindo {{ results|length }} resultados para "{{ query }}"
+                </div>
+
+                <div class="results-grid grid-view" id="results-grid">
+                    {% for result in results %}
+                    <div class="result-card" data-type="{{ result.type|lower }}" data-index="{{ loop.index0 }}">
+                        <div class="card-header">
+                            <span class="file-badge">{{ result.type|upper }}</span>
+                            {% if result.thumbnail %}
+                            <img src="{{ url_for('serve_knowledge_file', path=result.thumbnail) }}" loading="lazy"
+                                alt="Preview">
+                            {% else %}
+                            <i class="file-icon-large fas 
+                                    {% if 'pdf' in result.type|lower %}fa-file-pdf
+                                    {% elif 'word' in result.type|lower %}fa-file-word
+                                    {% elif 'excel' in result.type|lower %}fa-file-excel
+                                    {% elif 'image' in result.type|lower %}fa-image
+                                    {% elif 'code' in result.type|lower %}fa-code
+                                    {% else %}fa-file-alt{% endif %}"></i>
+                            {% endif %}
+                        </div>
+
+                        <div class="card-body">
+                            <a href="#" class="result-title" onclick="openModal({{ loop.index0 }})">{{ result.title
+                                }}</a>
+
+                            <div class="result-meta">
+                                <span><i class="fas fa-weight-hanging"></i> {{ result.size }}</span>
+                                <span><i class="far fa-clock"></i> {{ result.modified }}</span>
+                            </div>
+
+                            <div class="result-snippet">
+                                {{ result.snippet if result.snippet else "Nenhuma descricao disponivel para este arquivo." }}
+                            </div>
+
+                            <div class="card-footer">
+                                <div class="card-actions">
+                                    <button class="btn-icon" title="Util" onclick="rateFile(this, 'like')">
+                                        <i class="far fa-thumbs-up"></i>
+                                    </button>
+                                    <button class="btn-icon" title="Baixar"
+                                        onclick="window.open('{{ url_for('serve_knowledge_file', path=result.path) }}')">
+                                        <i class="fas fa-download"></i>
+                                    </button>
+                                </div>
+                                <button class="btn-primary-sm" onclick="openModal({{ loop.index0 }})">
+                                    <i class="fas fa-external-link-alt"></i> Detalhes
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="no-results">
+                        <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                        <h3>Nenhum resultado encontrado</h3>
+                        <p style="color: var(--text-muted);">Tente buscar por termos mais genericos ou verifique a
+                        <p style="color: var(--text-muted);">Tente buscar por termos mais genericos ou verifique a
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Grafico de visualizacao -->
+            <div class="graph-container">
+                <canvas id="graph-canvas" style="width: 100%; height: 100%;"></canvas>
+            </div>
+            {% endif %}
+
+    <!-- Modal de Detalhes -->
+    <div class="modal-overlay" id="resultModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 id="modal-title" style="margin:0; font-weight:600; color:white;">Detalhes do Arquivo</h3>
+                <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-content">
+                <div style="display:flex; gap:2rem; flex-wrap:wrap;">
+                    <div style="flex:1; min-width:250px;">
+                        <p style="color:var(--text-muted); font-size:0.9rem;">Caminho</p>
+                        <p id="modal-path"
+                            style="word-break:break-all; margin-bottom:1rem; color:var(--accent-primary);">-</p>
+
+                        <p style="color:var(--text-muted); font-size:0.9rem;">Trecho do Conteudo</p>
+                        <div id="modal-snippet"
+                            style="background:rgba(255,255,255,0.05); padding:1rem; border-radius:8px; line-height:1.6; color:#ccc;">
+                            -</div>
+                    </div>
+                    <div style="width:200px;">
+                        <div style="background:rgba(0,0,0,0.3); padding:1rem; border-radius:12px;">
+                            <div style="margin-bottom:10px;"><strong>Tipo:</strong> <span id="modal-type">-</span></div>
+                            <div style="margin-bottom:10px;"><strong>Tamanho:</strong> <span id="modal-size">-</span>
+                            </div>
+                            <div style="margin-bottom:10px;"><strong>Data:</strong> <span id="modal-date">-</span></div>
+                            <a href="#" id="modal-download" class="btn-primary-sm"
+                                style="justify-content:center; margin-top:1rem;">
+                                <i class="fas fa-external-link-alt"></i> Abrir Arquivo
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <!-- Scripts especificos da pagina de busca -->
+    <script>
+        // Dados injetados pelo Backend
+        const resultsData = {{ results| tojson if results else '[]' }};
+        let isSearching = false;
+
+        // === ANIMACAO DE VARREDURA ===
+        function showScanAnimation() {
+            if (isSearching) return;
+
+            isSearching = true;
+            const scanAnimation = document.getElementById('scan-animation');
+            if (scanAnimation) {
+                scanAnimation.style.display = 'flex';
+                setTimeout(() => {
+                    scanAnimation.classList.add('active');
+                }, 10);
+
+                // Adicionar efeito de digitacao ao texto
+                const scanText = scanAnimation.querySelector('.scan-text');
+                if (scanText) {
+                    const originalText = scanText.textContent;
+                    scanText.textContent = '';
+                    let i = 0;
+
+                    const typeWriter = () => {
+                        if (i < originalText.length) {
+                            scanText.textContent += originalText.charAt(i);
+                            i++;
+                            setTimeout(typeWriter, 50);
+                        }
+                    };
+                    setTimeout(typeWriter, 300);
+                }
+            }
+        }
+
+        function hideScanAnimation() {
+            const scanAnimation = document.getElementById('scan-animation');
+            if (scanAnimation) {
+                scanAnimation.classList.remove('active');
+                setTimeout(() => {
+                    scanAnimation.style.display = 'none';
+                    isSearching = false;
+                }, 500);
+            }
+        }
+
+        // === FUNCOES DE VISUALIZACAO ===
+        function setView(viewMode) {
+            const grid = document.getElementById('results-grid');
+            const btns = document.querySelectorAll('.view-btn');
+
+            // Atualizar botoes ativos
+            btns.forEach(b => b.classList.remove('active'));
+            if (viewMode === 'grid') {
+                btns[0].classList.add('active');
+                grid.classList.add('grid-view');
+                grid.classList.remove('list-view');
+            } else {
+                btns[1].classList.add('active');
+                grid.classList.add('list-view');
+                grid.classList.remove('grid-view');
+            }
+
+            // Animar transicao
+            grid.style.opacity = '0';
+            setTimeout(() => {
+                grid.style.opacity = '1';
+            }, 300);
+        }
+
+        // === FILTROS ===
+        document.addEventListener('DOMContentLoaded', function () {
+            // Configurar animacao de busca
+            const searchForm = document.getElementById('search-form');
+            const searchInput = document.getElementById('search-input');
+            const searchButton = document.getElementById('search-button');
+
+            if (searchForm) {
+                searchForm.addEventListener('submit', function (e) {
+                    const query = searchInput.value.trim();
+                    if (query && !isSearching) {
+                        showScanAnimation();
+
+                        // Simular tempo de busca (em producao, isso sera real)
+                        setTimeout(() => {
+                            hideScanAnimation();
+                        }, 1500);
+                    }
+                });
+            }
+
+            // Animar Botao de busca
+            if (searchButton) {
+                searchButton.addEventListener('click', function () {
+                    this.style.transform = 'scale(0.9)';
+                    setTimeout(() => {
+                        this.style.transform = 'scale(1)';
+                    }, 200);
+                });
+            }
+
+            // Sugestoes de busca com animacao
+            document.querySelectorAll('.suggestion-tag').forEach(tag => {
+                tag.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const query = this.textContent.trim();
+
+                    if (query && !isSearching) {
+                        searchInput.value = query;
+                        searchInput.focus();
+
+                        // Efeito visual na tag
+                        this.style.transform = 'scale(0.95)';
+                        this.style.background = 'rgba(74, 143, 231, 0.2)';
+
+                        setTimeout(() => {
+                            this.style.transform = 'scale(1)';
+                            setTimeout(() => {
+                                searchForm.submit();
+                            }, 300);
+                        }, 200);
+                    }
+                });
+            });
+
+            const filterPills = document.querySelectorAll('.filter-pill');
+            const cards = document.querySelectorAll('.result-card');
+
+            filterPills.forEach(pill => {
+                pill.addEventListener('click', () => {
+                    // Animar clique
+                    pill.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        pill.style.transform = 'scale(1)';
+                    }, 150);
+
+                    // Atualizar Botao ativo
+                    filterPills.forEach(p => p.classList.remove('active'));
+                    pill.classList.add('active');
+
+                    const filter = pill.dataset.filter;
+                    let visibleCount = 0;
+
+                    // Filtrar cards com animacao
+                    cards.forEach(card => {
+                        const type = card.dataset.type;
+                        let show = false;
+
+                        if (filter === 'all') {
+                            show = true;
+                        } else if (filter === 'image' && (type.includes('image') || type.includes('imagem') || type.includes('jpg') || type.includes('png'))) {
+                            show = true;
+                        } else if (type.includes(filter)) {
+                            show = true;
+                        }
+
+                        if (show) {
+                            card.style.display = 'flex';
+                            card.style.animation = 'cardAppear 0.5s ease forwards';
+                            card.style.animationDelay = (visibleCount * 0.05) + 's';
+                            visibleCount++;
+                        } else {
+                            card.style.opacity = '0';
+                            card.style.transform = 'translateY(10px)';
+                            setTimeout(() => {
+                                card.style.display = 'none';
+                            }, 300);
+                        }
+                    });
+
+                    // Atualizar contador
+                    const display = document.getElementById('results-count-display');
+                    const countSpan = pill.querySelector('.filter-count');
+                    if (display && countSpan) {
+                        countSpan.textContent = visibleCount;
+                        if (filter === 'all') {
+                            display.innerHTML = `<i class="fas fa-search"></i> Exibindo ${visibleCount} resultados para "{{ query }}"`;
+                        } else {
+                            display.innerHTML = `<i class="fas fa-filter"></i> ${visibleCount} resultados do tipo ${filter.toUpperCase()}`;
+                        }
+                    }
+                });
+            });
+
+            // === MODAL ===
+            const modal = document.getElementById('resultModal');
+
+            window.openModal = function (index) {
+                const data = resultsData[index];
+                if (!data) return;
+
+                document.getElementById('modal-title').innerText = data.title;
+                document.getElementById('modal-path').innerText = data.path;
+                document.getElementById('modal-snippet').innerText = data.snippet || 'Sem descricao disponivel.';
+                document.getElementById('modal-size').innerText = data.size;
+                document.getElementById('modal-date').innerText = data.modified;
+
+                const dlBtn = document.getElementById('modal-download');
+                dlBtn.href = `{{ url_for('serve_knowledge_file', path='') }}${data.path}`;
+                dlBtn.target = "_blank";
+
+                modal.classList.add('active');
+            };
+
+            window.closeModal = function () {
+                modal.classList.remove('active');
+            };
+
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
+
+            // === AVALIACAO DE ARQUIVO ===
+            window.rateFile = function (button, type) {
+                button.classList.toggle('active');
+                const icon = button.querySelector('i');
+                if (type === 'like') {
+                    if (button.classList.contains('active')) {
+                        icon.className = 'fas fa-thumbs-up';
+                        button.style.color = 'var(--accent-primary)';
+                    } else {
+                        icon.className = 'far fa-thumbs-up';
+                        button.style.color = '';
+                    }
+                }
+
+                // Efeito de confirmacao
+                button.style.transform = 'scale(1.2)';
+                setTimeout(() => {
+                    button.style.transform = 'scale(1)';
+                }, 200);
+            };
+
+            // === VISUALIZACAO DE GRAFO ===
+            if (resultsData && resultsData.length > 0) {
+                setTimeout(() => {
+                    const types = {};
+                    resultsData.forEach(r => {
+                        const t = r.type || 'Outros';
+                        types[t] = (types[t] || 0) + 1;
+                    });
+
+                    const nodes = [{ id: 0, label: 'Busca', color: '#4a8fe7', size: 25, font: { size: 16 } }];
+                    const edges = [];
+                    let i = 1;
+
+                    Object.keys(types).forEach(k => {
+                        const size = Math.max(15, Math.min(30, types[k] * 3));
+                        nodes.push({
+                            id: i,
+                            label: k,
+                            value: size,
+                            color: '#4a8fe7',
+                            font: { size: 14 }
+                        });
+                        edges.push({
+                            from: 0,
+                            to: i,
+                            width: Math.min(3, types[k] / 2)
+                        });
+                        i++;
+                    });
+
+                    const container = document.getElementById('graph-canvas');
+                    if (container) {
+                        const data = {
+                            nodes: new vis.DataSet(nodes),
+                            edges: new vis.DataSet(edges)
+                        };
+                        const options = {
+                            nodes: {
+                                shape: 'dot',
+                                font: {
+                                    color: '#fff',
+                                    size: 14
+                                },
+                                borderWidth: 0,
+                                shadow: true
+                            },
+                            edges: {
+                                width: 2,
+                                color: '#4a8fe7',
+                                smooth: {
+                                    type: 'continuous'
+                                }
+                            },
+                            physics: {
+                                enabled: true,
+                                stabilization: {
+                                    iterations: 100
+                                },
+                                barnesHut: {
+                                    gravitationalConstant: -2000,
+                                    centralGravity: 0.3
+                                }
+                            },
+                            interaction: {
+                                hover: true,
+                                zoomView: true,
+                                dragView: true
+                            }
+                        };
+                        new vis.Network(container, data, options);
+                    }
+                }, 800);
+            }
+
+        });
+    </script>
+{% endblock %}
+

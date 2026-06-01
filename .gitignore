@@ -1,0 +1,82 @@
+# Environments
+.env
+.env.local
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Logs
+logs/
+*.log
+erro_log.txt
+server_detached_stderr.log
+server_detached_stdout.log
+server_job.log
+server_run_stderr.log
+server_run_stdout.log
+server_stderr.log
+server_stdout.log
+
+# Caches
+search_cache/
+
+# Databases (Keeping the db if required but normally ignored)
+# We will NOT ignore contatos_bms.db since it has fake mock data the user wants to keep, 
+# but we ignore other random DBs
+*.sqlite3
+# contatos_bms.db (Commented out to keep mock data if it was intended. But let's verify if there is any other db to ignore)

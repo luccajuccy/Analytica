@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block title %}Analytica - Dashboard BMS{% endblock %}
+
+{% block head %}
+<meta charset="UTF-8">
+<script src="{{ url_for('static', filename='vendor/plotly.min.js') }}"></script>
+<style>
+    /* Reaproveita estilos do dashboard.html para manter o padrão */
+    .dashboard-header {
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .dashboard-header h1 {
+        font-size: 2.2rem;
+        margin-bottom: 0.5rem;
+        color: var(--text-primary);
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.8rem;
+    }
+
+    .dashboard-header p {
+        font-size: 1.1rem;
+        color: var(--text-secondary);
+    }
+
+    .dashboard-container {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+        width: 100%;
+    }
+
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+    }
+
+    .metric-card {
+        background: rgba(10, 25, 47, 0.45);
+        border: 1px solid rgba(42, 74, 127, 0.25);
+        border-radius: var(--border-radius);
+        padding: 1rem;
+    }
+
+    .metric-card span {
+        color: var(--text-muted);
+        font-size: 0.85rem;
+    }
+
+    .metric-card strong {
+        display: block;
+        margin-top: 0.35rem;
+        color: var(--text-primary);
+        font-size: 2rem;
+    }
+
+    .dashboard-card {
+        background: rgba(17, 34, 64, 0.7);
+        backdrop-filter: blur(10px);
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        border: 1px solid rgba(42, 74, 127, 0.2);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        transition: var(--transition);
+    }
+
+    .dashboard-card:hover {
+        border-color: rgba(74, 143, 231, 0.3);
+        transform: translateY(-2px);
+    }
+
+    .dashboard-card h2 {
+        font-size: 1.4rem;
+        margin-bottom: 1rem;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding-bottom: 0.8rem;
+        border-bottom: 1px solid rgba(42, 74, 127, 0.2);
+    }
+
+    .grid-two {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .toolbar-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        justify-content: center;
+        margin-bottom: 2rem;
+    }
+
+    .toolbar-filters select,
+    .toolbar-filters input {
+        background-color: rgba(10, 25, 47, 0.8) !important;
+        border: 1px solid rgba(74, 143, 231, 0.3) !important;
+        color: var(--text-primary) !important;
+        padding: 0.5rem 1rem;
+        border-radius: var(--border-radius);
+        outline: none;
+    }
+
+    .table-wrap {
+        overflow-x: auto;
+    }
+
+    .recent-table {
+        width: 100%;
+        border-collapse: collapse;
+        color: var(--text-secondary);
+        min-width: 600px;
+    }
+
+    .recent-table th,
+    .recent-table td {
+        padding: 0.8rem;
+        border-bottom: 1px solid rgba(42, 74, 127, 0.25);
+        text-align: left;
+    }
+
+    .recent-table th {
+        color: var(--text-muted);
+        font-weight: 600;
+        font-size: 0.82rem;
+        text-transform: uppercase;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h1>Analytica</h1>
+    <p>Interlinked Ecosystem</p>
+</div>
+
+<div class="toolbar-filters">
+    <select id="buildingFilter">
+        <option value="all">Todos os edifícios</option>
+        {% for building in buildings %}
+        <option value="{{ building.slug }}">{{ building.name }}</option>
+        {% endfor %}
+    </select>
+    <input id="buildingQuery" type="search" placeholder="Buscar prédio...">
+    <select id="periodFilter">
+        <option value="30">Últimos 30 dias</option>
+        <option value="7">Últimos 7 dias</option>
+    </select>
+    <select id="typeFilter">
+        <option value="all">Aumentar e diminuir</option>
+        <option value="aumentar">Aumentar</option>
+        <option value="diminuir">Diminuir</option>
+    </select>
+</div>
+
+<div class="dashboard-container">
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <span>Solicitações no período</span>
+            <strong id="mTotal">0</strong>
+        </div>
+        <div class="metric-card">
+            <span>Chamados abertos</span>
+            <strong id="mOpen">0</strong>
+        </div>
+        <div class="metric-card">
+            <span>Edifícios com falha</span>
+            <strong id="mFailures">0</strong>
+        </div>
+        <div class="metric-card">
+            <span>Temp. externa média</span>
+            <strong id="mExternal">0°C</strong>
+        </div>
+    </div>
+
+    <div class="grid-two">
+        <div class="dashboard-card">
+            <h2><i class="fa-solid fa-clock"></i> Solicitações por hora</h2>
+            <div id="hourChart" class="chart"></div>
+        </div>
+        <div class="dashboard-card">
+            <h2><i class="fa-solid fa-calendar-day"></i> Solicitações por dia da semana</h2>
+            <div id="weekdayChart" class="chart"></div>
+        </div>
+        <div class="dashboard-card">
+            <h2><i class="fa-solid fa-layer-group"></i> Heatmap por edifício e andar</h2>
+            <div id="floorHeatmap" class="chart"></div>
+        </div>
+        <div class="dashboard-card">
+            <h2><i class="fa-solid fa-temperature-half"></i> Temperatura externa x solicitações</h2>
+            <div id="correlationChart" class="chart"></div>
+        </div>
+        <div class="dashboard-card">
+            <h2><i class="fa-solid fa-arrow-right-arrow-left"></i> Aumentar vs diminuir</h2>
+            <div id="typeChart" class="chart"></div>
+        </div>
+        <div class="dashboard-card">
+            <h2><i class="fa-solid fa-server"></i> Equipamentos por andar</h2>
+            <div id="equipmentHeatmap" class="chart"></div>
+        </div>
+        <div class="dashboard-card">
+            <h2><i class="fa-solid fa-triangle-exclamation"></i> Falhas críticas do mês</h2>
+            <div id="failureChart" class="chart"></div>
+        </div>
+        <div class="dashboard-card">
+            <h2><i class="fa-solid fa-temperature-arrow-up"></i> Outliers de temperatura</h2>
+            <div class="table-wrap">
+                <table class="recent-table">
+                    <thead>
+                        <tr>
+                            <th>Edifício</th>
+                            <th>Andar</th>
+                            <th>Temperatura</th>
+                            <th>Horário</th>
+                        </tr>
+                    </thead>
+                    <tbody id="outlierRows"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const plotConfig = {displayModeBar: false, responsive: true};
+const layoutBase = {
+    paper_bgcolor: "rgba(0,0,0,0)",
+    plot_bgcolor: "rgba(0,0,0,0)",
+    font: {color: "#edf4ff"},
+    margin: {l: 48, r: 20, t: 18, b: 48}
+};
+
+async function refreshDashboard() {
+    const qs = new URLSearchParams({
+        building: document.getElementById("buildingFilter").value,
+        days: document.getElementById("periodFilter").value,
+        type: document.getElementById("typeFilter").value,
+        building_query: document.getElementById("buildingQuery").value.trim()
+    });
+    const data = await fetch(`/api/dashboard-data?${qs}`).then(r => r.json());
+
+    document.getElementById("mTotal").textContent = data.metrics.total_requests;
+    document.getElementById("mOpen").textContent = data.metrics.open_tickets;
+    document.getElementById("mFailures").textContent = data.metrics.critical_failures;
+    document.getElementById("mExternal").textContent = `${data.metrics.avg_external_temp}°C`;
+
+    Plotly.react("hourChart", [{type: "bar", x: data.by_hour.labels, y: data.by_hour.values, marker: {color: "#5cc8ff"}}], layoutBase, plotConfig);
+    Plotly.react("weekdayChart", [{type: "bar", x: data.by_weekday.labels, y: data.by_weekday.values, marker: {color: "#7ce7b2"}}], layoutBase, plotConfig);
+    Plotly.react("floorHeatmap", [{type: "heatmap", x: data.floor_heatmap.x, y: data.floor_heatmap.y, z: data.floor_heatmap.z, colorscale: "YlOrRd"}], layoutBase, plotConfig);
+    Plotly.react("correlationChart", [
+        {type: "scatter", mode: "markers", x: data.correlation.x, y: data.correlation.y, marker: {color: "#5cc8ff", size: 9}},
+        {type: "scatter", mode: "lines", x: data.correlation.trend_x, y: data.correlation.trend_y, line: {color: "#ffcf70"}}
+    ], {...layoutBase, xaxis: {title: "Temp. externa"}, yaxis: {title: "Solicitações"}}, plotConfig);
+    Plotly.react("typeChart", [{type: "pie", labels: data.by_type.labels, values: data.by_type.values, hole: 0.45}], layoutBase, plotConfig);
+    Plotly.react("equipmentHeatmap", [{type: "heatmap", x: data.equipment_heatmap.x, y: data.equipment_heatmap.y, z: data.equipment_heatmap.z, colorscale: "RdYlGn", reversescale: true}], layoutBase, plotConfig);
+    Plotly.react("failureChart", [{type: "bar", x: data.failures.labels, y: data.failures.values, marker: {color: "#ff6b7a"}}], layoutBase, plotConfig);
+
+    document.getElementById("outlierRows").innerHTML = data.outliers.map(item => `
+        <tr><td>${item.building}</td><td>${item.floor}</td><td>${item.temperature}°C</td><td>${item.timestamp}</td></tr>
+    `).join("");
+}
+
+["buildingFilter", "periodFilter", "typeFilter", "buildingQuery"].forEach(id => {
+    document.getElementById(id).addEventListener("change", refreshDashboard);
+    document.getElementById(id).addEventListener("input", refreshDashboard);
+});
+refreshDashboard();
+</script>
+{% endblock %}

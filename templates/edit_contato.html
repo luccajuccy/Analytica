@@ -1,0 +1,550 @@
+{% extends 'base.html' %}
+
+{% block title %}Editar Contato - Analytica{% endblock %}
+
+{% block head %}
+<meta charset="UTF-8">
+    <style>
+        /* Estilos da pagina */
+        }
+
+        /* Partículas de fundo */
+        #particles-js {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            background: linear-gradient(135deg, var(--dark-blue-1) 0%, var(--dark-blue-2) 100%);
+        }
+
+        /* Header com logo - Ajustado para ter altura fixa */
+        .header {
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: 0;
+            padding: 1rem 2rem;
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            background: rgba(10, 25, 47, 0.5);
+            border-bottom: 1px solid rgba(42, 74, 127, 0.2);
+            height: 70px;
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+        }
+
+        .header-logo img {
+            height: 40px;
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .header-logo img:hover {
+            transform: translateY(-2px);
+        }
+
+        .widgets ul {
+            display: flex;
+            list-style: none;
+            gap: 1.5rem;
+        }
+
+        .widgets a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            pointer-events: auto;
+        }
+
+        .widgets a:hover {
+            color: var(--accent-blue);
+            background: rgba(42, 74, 127, 0.2);
+        }
+
+        /* Container principal */
+        .container {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar minimalista */
+        .sidebar {
+            width: 280px;
+            height: 100vh;
+            background: rgba(17, 34, 64, 0.7);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid rgba(42, 74, 127, 0.2);
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem 0;
+            z-index: 2;
+            overflow-y: auto;
+            transition: var(--transition);
+            margin-top: 70px;
+        }
+
+        .sidebar-nav ul {
+            list-style: none;
+        }
+
+        .sidebar-nav li {
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            padding: 0.9rem 1.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+            position: relative;
+            pointer-events: auto;
+            gap: 0.8rem;
+        }
+
+        .sidebar-nav a:hover {
+            background: rgba(42, 74, 127, 0.2);
+            color: var(--accent-blue);
+        }
+
+        .sidebar-nav a.selected {
+            background: rgba(42, 74, 127, 0.2);
+            color: var(--accent-blue);
+            border-left: 3px solid var(--accent-blue);
+        }
+
+        .nav-icon {
+            font-size: 1.1rem;
+            width: 24px;
+            text-align: center;
+        }
+
+        /* Conteúdo principal - Ajustado para não ficar sob o header */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+            overflow-y: auto;
+            margin-top: 70px;
+        }
+
+        /* Card do formulário */
+        .form-card {
+            width: 100%;
+            max-width: 980px;
+            background: rgba(17, 34, 64, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: var(--border-radius);
+            padding: 2.5rem;
+            border: 1px solid rgba(42, 74, 127, 0.2);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        .form-card h2 {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        form {
+            margin-top: 0.6rem;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 0.35rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+
+        .full {
+            grid-column: 1 / -1;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(42, 74, 127, 0.3);
+            background: rgba(10, 25, 47, 0.3);
+            color: var(--text-primary);
+            outline: none;
+            transition: var(--transition);
+            font-family: 'Inter', sans-serif;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            box-shadow: 0 0 0 3px rgba(74, 143, 231, 0.2);
+            border-color: var(--light-blue);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .meta {
+            display: flex;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+            margin-top: 0.6rem;
+        }
+
+        .chip {
+            background: rgba(42, 74, 127, 0.2);
+            padding: 0.35rem 0.8rem;
+            border-radius: 999px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--medium-blue), var(--light-blue));
+            color: white;
+            box-shadow: 0 4px 12px rgba(42, 74, 127, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(42, 74, 127, 0.4);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid rgba(42, 74, 127, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(42, 74, 127, 0.1);
+            color: var(--accent-blue);
+        }
+
+        /* Estilo para o Botao de exclusão (novo) */
+        .btn-danger {
+            background: linear-gradient(135deg, #d32f2f, #f44336);
+            color: white;
+            box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(211, 47, 47, 0.4);
+            background: linear-gradient(135deg, #c62828, #e53935);
+            color: white;
+        }
+
+        .message {
+            background: rgba(100, 181, 246, 0.1);
+            color: var(--accent-blue);
+            padding: 0.8rem 1rem;
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(100, 181, 246, 0.2);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Animações suaves */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsividade */
+        @media (max-width: 900px) {
+            .sidebar {
+                width: 80px;
+                align-items: center;
+            }
+
+            .sidebar-nav a span {
+                display: none;
+            }
+
+            .sidebar-nav a {
+                justify-content: center;
+                padding: 1rem;
+            }
+
+            .nav-icon {
+                font-size: 1.3rem;
+            }
+
+            .main-content {
+                padding: 1.5rem;
+                margin-top: 70px;
+            }
+
+            .form-card {
+                padding: 1.5rem;
+            }
+
+            .form-card h2 {
+                font-size: 1.5rem;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .grid-3 {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                padding: 0.8rem 1rem;
+                height: 60px;
+            }
+
+            .header-logo img {
+                height: 35px;
+            }
+
+            .sidebar {
+                margin-top: 60px;
+            }
+
+            .actions {
+                flex-wrap: wrap;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .header {
+                padding: 0.6rem 0.8rem;
+                flex-direction: column;
+                gap: 0.8rem;
+                height: 80px;
+            }
+
+            .header-logo img {
+                height: 30px;
+            }
+
+            .widgets ul {
+                gap: 0.5rem;
+            }
+
+            .widgets a span {
+                display: none;
+            }
+
+            .widgets a {
+                padding: 0.5rem;
+                font-size: 1.1rem;
+            }
+
+            .main-content {
+                padding: 1rem;
+                margin-top: 80px;
+            }
+
+            .form-card h2 {
+                font-size: 1.4rem;
+            }
+
+            .sidebar {
+                margin-top: 80px;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                justify-content: center;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+        <!-- Conteudo principal -->
+        <main class="main-content">
+            <section class="form-card" aria-labelledby="edit-contact-title">
+                <h2 id="edit-contact-title"><i class="fa-solid fa-user-pen"></i> Editar Contato</h2>
+                <div class="subtitle">Atualize os dados do contato e salve as alterações.</div>
+
+                {% if message %}
+                <div class="message">
+                    <i class="fa-solid fa-circle-info"></i> {{ message.text }}
+                </div>
+                {% endif %}
+
+                <form method="post" action="{{ url_for('edit_contato', contato_id=contato.id) }}">
+
+                    <div class="grid">
+                        <div>
+                            <label for="predio">Prédio</label>
+                            <input id="predio" name="predio" type="text" value="{{ contato.predio or '' }}" />
+                        </div>
+                        <div>
+                            <label for="empresa">Empresa</label>
+                            <input id="empresa" name="empresa" type="text" value="{{ contato.empresa or '' }}" />
+                        </div>
+                    </div>
+
+                    <div class="grid" style="margin-top:1rem">
+                        <div>
+                            <label for="funcao">Função</label>
+                            <input id="funcao" name="funcao" type="text" value="{{ contato.funcao or '' }}" />
+                        </div>
+                        <div>
+                            <label for="categoria">Categoria</label>
+                            <input id="categoria" name="categoria" type="text" value="{{ contato.categoria or '' }}" />
+                        </div>
+                    </div>
+
+                    <div class="grid" style="margin-top:1rem">
+                        <div>
+                            <label for="acao">Ação</label>
+                            <input id="acao" name="acao" type="text" value="{{ contato.acao or '' }}" />
+                        </div>
+                        <div>
+                            <label for="nome">Nome</label>
+                            <input id="nome" name="nome" type="text" value="{{ contato.nome or '' }}" />
+                        </div>
+                    </div>
+
+                    <div class="grid" style="margin-top:1rem">
+                        <div>
+                            <label for="telefone1">Telefone 1</label>
+                            <input id="telefone1" name="telefone1" type="text" value="{{ contato.telefone1 or '' }}" />
+                        </div>
+                        <div>
+                            <label for="telefone2">Telefone 2</label>
+                            <input id="telefone2" name="telefone2" type="text" value="{{ contato.telefone2 or '' }}" />
+                        </div>
+                    </div>
+
+                    <div class="grid" style="margin-top:1rem">
+                        <div class="full">
+                            <label for="email">E-mail</label>
+                            <input id="email" name="email" type="email" value="{{ contato.email or '' }}" />
+                        </div>
+                    </div>
+
+                    <div style="margin-top:1rem">
+                        <label for="observacao">Observação</label>
+                        <textarea id="observacao" name="observacao" rows="4">{{ contato.observacao or '' }}</textarea>
+                    </div>
+
+                    <div class="actions">
+                        <a class="btn btn-secondary" href="{{ url_for('plannc') }}"><i
+                                class="fa-solid fa-xmark"></i>&nbsp;Cancelar</a>
+
+                        <!-- Botao de Exclusão (novo) -->
+                        <button type="button" class="btn btn-danger" onclick="confirmarExclusao({{ contato.id }})">
+                            <i class="fa-solid fa-trash"></i>&nbsp;Excluir
+                        </button>
+
+                        <button class="btn btn-primary" type="submit"><i
+                                class="fa-solid fa-floppy-disk"></i>&nbsp;Salvar Alterações</button>
+                    </div>
+
+                </form>
+
+                <!-- Formulário oculto para exclusão -->
+                <form id="form-excluir" method="post" action="/delete_contato/{{ contato.id }}" style="display: none;">
+                </form>
+
+            </section>
+        </main>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+
+        // Função para confirmar exclusão
+        function confirmarExclusao(contatoId) {
+            if (confirm('Tem certeza que deseja excluir este contato? Esta ação não pode ser desfeita.')) {
+                // Configura o formulário oculto e submete
+                const form = document.getElementById('form-excluir');
+                form.action = `/delete_contato/${contatoId}`;
+                form.submit();
+            }
+        }
+    </script>
+{% endblock %}

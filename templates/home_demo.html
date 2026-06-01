@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Analytica - Home{% endblock %}
+{% block head %}<meta charset="UTF-8">{% endblock %}
+{% block content %}
+<header class="topbar">
+    <div class="page-title">
+        <h1>Analytica</h1>
+        <p>Interlinked Ecosystem</p>
+    </div>
+</header>
+
+<section class="grid cards">
+    <div class="card"><span class="metric-label">Edificios</span><strong class="metric-value">{{ metrics.buildings }}</strong></div>
+    <div class="card"><span class="metric-label">Sensores</span><strong class="metric-value">{{ metrics.sensors }}</strong></div>
+    <div class="card"><span class="metric-label">Chamados abertos</span><strong class="metric-value">{{ metrics.open_tickets }}</strong></div>
+    <div class="card"><span class="metric-label">Falhas criticas</span><strong class="metric-value">{{ metrics.critical_failures }}</strong></div>
+</section>
+
+<section style="display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 24px; margin-top: 32px;">
+    {% for building in buildings %}
+    <a class="card building-card" href="{{ url_for('building_page', nome=building.slug) }}" style="display: flex; flex-direction: column; text-decoration: none; padding: 20px; border-left: 4px solid {{ 'var(--success)' if building.cag_status == 'ligado' else 'var(--warning)' }};">
+        
+        <!-- Cabeçalho do Card -->
+        <div style="display:flex; align-items:center; justify-content:space-between; border-bottom: 1px solid rgba(42, 74, 127, 0.3); padding-bottom: 16px; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <h2 style="margin:0; font-size: 1.4rem; color: var(--text-primary); font-weight: 600;">{{ building.name }}</h2>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; background: rgba(17, 34, 64, 0.5); padding: 6px 12px; border-radius: 99px; border: 1px solid rgba(42, 74, 127, 0.3);">
+                <span class="status-dot {{ 'online' if building.status == 'online' else '' }}"></span>
+                <span class="metric-label" style="font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase;">{{ 'Online' if building.status == 'online' else 'Offline' }}</span>
+            </div>
+        </div>
+
+        <!-- Métricas Internas -->
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+            <div style="background: rgba(17, 34, 64, 0.4); padding: 16px; border-radius: var(--border-radius); border: 1px solid rgba(42, 74, 127, 0.2);">
+                <span class="metric-label" style="font-size: 0.8rem;">Comunicação</span><br>
+                <span class="badge {{ 'ok' if building.status == 'online' else 'danger' }}" style="margin-top: 10px; display: inline-block;">{{ building.status|upper }}</span>
+            </div>
+            
+            <div style="background: rgba(17, 34, 64, 0.4); padding: 16px; border-radius: var(--border-radius); border: 1px solid rgba(42, 74, 127, 0.2);">
+                <span class="metric-label" style="font-size: 0.8rem;">Status CAG</span><br>
+                <span class="badge {{ 'ok' if building.cag_status == 'ligado' else 'warn' }}" style="margin-top: 10px; display: inline-block;">{{ building.cag_status|upper }}</span>
+            </div>
+            
+            <div style="background: rgba(17, 34, 64, 0.4); padding: 16px; border-radius: var(--border-radius); border: 1px solid rgba(42, 74, 127, 0.2);">
+                <span class="metric-label" style="font-size: 0.8rem;">Chamados</span>
+                <strong class="metric-value" style="font-size: 2rem; margin-top: 8px;">{{ building.open_tickets }}</strong>
+            </div>
+            
+            <div style="background: rgba(17, 34, 64, 0.4); padding: 16px; border-radius: var(--border-radius); border: 1px solid rgba(42, 74, 127, 0.2); display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <span class="metric-label" style="font-size: 0.8rem;">Temperatura CAG</span>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+                        <strong class="metric-value" style="font-size: 1.8rem; margin: 0;">
+                            {{ "%.1f"|format(building.cag_temperature.value) }}°C
+                        </strong>
+                        <i class="fa-solid {{ building.cag_temperature.icon }}" style="color: var(--text-secondary); font-size: 1.2rem;"></i>
+                    </div>
+                </div>
+                <div style="margin-top: 12px;">
+                    <span class="badge {{ building.cag_temperature.level }}">{{ building.cag_temperature.label }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rodapé do Card -->
+        <div class="metric-label" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(42, 74, 127, 0.2); font-size: 0.85rem; text-align: center; color: var(--text-secondary);">
+            {{ building.cag_temperature.message }}
+        </div>
+    </a>
+    {% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,678 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ building_name|default('Torre Alpha') }} - Monitoramento{% endblock %}
+
+{% block head %}
+<meta charset="UTF-8">
+    <!-- Tailwind (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Configuração Tailwind -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        neon: {
+                            50: '#ecfeff', 100: '#cffafe', 200: '#a5f3fc', 300: '#67e8f9', 400: '#22d3ee',
+                            500: '#06b6d4', 600: '#0891b2', 700: '#0e7490', 800: '#155e75', 900: '#164e63'
+                        },
+                        dark: {
+                            900: '#0b1420', 800: '#0f172a', 700: '#1e293b'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'Segoe UI', 'Roboto', 'system-ui', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --bg-base: #020617;
+            --glass-bg: rgba(30, 41, 59, 0.6);
+            /* Levemente mais opaco para legibilidade */
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --accent: #06b6d4;
+            --danger: #f43f5e;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        .b20-wrapper {
+            background-color: var(--bg-base);
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            background-image:
+                radial-gradient(circle at 50% 0%, rgba(6, 182, 212, 0.15), transparent 70%),
+                radial-gradient(circle at 80% 80%, rgba(99, 102, 241, 0.08), transparent 60%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .card-hover {
+            transition: transform 0.2s, background-color 0.2s;
+        }
+
+        .card-hover:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-weight: 600;
+            letter-spacing: 0.025em;
+            text-transform: uppercase;
+        }
+
+        .badge-success {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .badge-danger {
+            background: rgba(244, 63, 94, 0.2);
+            color: #fb7185;
+            border: 1px solid rgba(244, 63, 94, 0.3);
+        }
+
+        .badge-neutral {
+            background: rgba(148, 163, 184, 0.1);
+            color: #94a3b8;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        .metric-value {
+            font-family: 'Fira Code', monospace;
+            letter-spacing: -0.05em;
+        }
+
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .pulse-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--accent);
+            box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.7);
+            animation: pulse-cyan 2s infinite;
+        }
+
+        @keyframes pulse-cyan {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.7);
+            }
+
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 6px rgba(6, 182, 212, 0);
+            }
+
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(6, 182, 212, 0);
+            }
+        }
+
+        /* Responsive Sidebar Height Fixes */
+        @media (max-width: 1024px) {
+            .mobile-sidebar-height {
+                height: auto;
+                max-height: 300px;
+            }
+
+            .mobile-content-height {
+                height: auto;
+                min-height: 500px;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="b20-wrapper p-4 md:p-6 lg:p-8">
+
+    <div class="max-w-7xl mx-auto space-y-6">
+
+        <!-- HEADER -->
+        <header class="glass-panel p-6 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-5 w-full md:w-auto">
+                <div
+                    class="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 shrink-0">
+                    <i class="fas fa-building text-white text-2xl"></i>
+                </div>
+                <div>
+                    <h1
+                        class="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+                        {{ building_name|default('Torre Alpha') }}
+                    </h1>
+                    <div class="flex items-center gap-2 text-sm text-slate-400">
+                        <span class="pulse-dot"></span>
+                        <span>Sistema de Monitoramento BMS</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CACHE STATUS WIDGET -->
+            <div
+                class="flex flex-col md:flex-row items-center gap-4 bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 w-full md:w-auto justify-between md:justify-end">
+                <div class="text-right flex-1 md:flex-none">
+                    <div class="text-xs text-slate-500 font-medium uppercase tracking-wider">Última Atualização</div>
+                    <div class="font-mono text-cyan-400 font-bold" id="last-update">--:--:--</div>
+                </div>
+                <div class="h-8 w-px bg-slate-700 hidden md:block"></div>
+                <div class="text-right md:text-left flex-1 md:flex-none">
+                    <div class="text-xs text-slate-500 font-medium uppercase tracking-wider">Próxima Sincronização</div>
+                    <div class="font-mono text-emerald-400 font-bold" id="next-sync">Calculando...</div>
+                </div>
+                <div class="ml-2">
+                    <button onclick="app.refreshData()"
+                        class="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors group"
+                        title="Atualizar Dados">
+                        <i class="fas fa-sync-alt group-hover:animate-spin"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- KPI GRID -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <!-- Total Equipamentos -->
+            <div class="glass-panel p-5 card-hover cursor-default">
+                <div class="flex justify-between items-start mb-2">
+                    <div class="text-slate-400 text-sm font-medium">Equipamentos</div>
+                    <i class="fas fa-server text-indigo-400 opacity-80"></i>
+                </div>
+                <div class="text-3xl font-bold text-white" id="kpi-total">0</div>
+                <div class="text-xs text-slate-500 mt-1">Fancoils & CAG</div>
+            </div>
+
+            <!-- Andares com Falha -->
+            <div class="glass-panel p-5 relative overflow-hidden group card-hover cursor-pointer"
+                onclick="app.filterFaults()">
+                <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <i class="fas fa-exclamation-triangle text-6xl text-red-500"></i>
+                </div>
+                <div class="flex justify-between items-start mb-2">
+                    <div class="text-slate-400 text-sm font-medium">Andares c/ Falha</div>
+                    <i id="kpi-fault-icon" class="fas fa-check-circle text-emerald-500"></i>
+                </div>
+                <div class="text-3xl font-bold text-emerald-400" id="kpi-faults">0</div>
+                <div class="text-xs text-slate-500 mt-1">Requer atenção operacional</div>
+            </div>
+
+            <!-- Status Conexão -->
+            <div class="glass-panel p-5 card-hover cursor-default">
+                <div class="flex justify-between items-start mb-2">
+                    <div class="text-slate-400 text-sm font-medium">Status Conexão</div>
+                    <i class="fas fa-wifi text-cyan-400 opacity-80"></i>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="text-xl font-bold text-white">ONLINE</div>
+                    <span class="flex h-3 w-3 relative">
+                        <span
+                            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
+                    </span>
+                </div>
+                <div class="text-xs text-slate-500 mt-1">Latência: <span id="latency-val">12</span>ms</div>
+            </div>
+
+            <!-- DB Cache Mode -->
+            <div class="glass-panel p-5 card-hover cursor-default">
+                <div class="flex justify-between items-start mb-2">
+                    <div class="text-slate-400 text-sm font-medium">Modo de Operação</div>
+                    <i class="fas fa-database text-amber-400 opacity-80"></i>
+                </div>
+                <div class="text-xl font-bold text-white">Smart Cache</div>
+                <div class="text-xs text-slate-500 mt-1">Otimização Ativa</div>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT: Sidebar + Details -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+
+            <!-- LEFT SIDEBAR: Floor List -->
+            <!-- Mobile: Auto height / Desktop: Calc height -->
+            <aside
+                class="lg:col-span-1 glass-panel p-4 mobile-sidebar-height lg:h-[calc(100vh-320px)] flex flex-col transition-all duration-300">
+                <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2 px-2 shrink-0">
+                    <i class="fas fa-map-layers text-cyan-500"></i> Andares
+                </h3>
+
+                <!-- Link Especial CAG -->
+                <div class="mb-3 px-2 shrink-0">
+                    <button onclick="app.selectFloor('CAG')" id="btn-CAG"
+                        class="w-full p-3 rounded-xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 transition-all text-blue-300 font-bold text-center mb-2 flex items-center justify-center gap-2 group">
+                        <i class="fas fa-water group-hover:animate-bounce"></i> CAG
+                    </button>
+
+                    <button onclick="app.selectFloor('ALL')" id="btn-ALL"
+                        class="w-full p-2 rounded-lg text-sm text-center text-slate-400 hover:bg-white/5 transition-colors font-semibold border border-transparent">
+                        Visão Geral (Todos)
+                    </button>
+                </div>
+
+                <div id="floor-list" class="overflow-y-auto pr-2 space-y-2 flex-1 custom-scrollbar">
+                    <!-- Javascript will populate this -->
+                </div>
+            </aside>
+
+            <!-- RIGHT CONTENT: Details -->
+            <section
+                class="lg:col-span-3 glass-panel p-6 mobile-content-height lg:h-[calc(100vh-320px)] overflow-y-auto relative custom-scrollbar scroll-smooth">
+
+                <!-- Content Container -->
+                <div id="main-view" class="space-y-8">
+                    <!-- Content injected here via JS -->
+                </div>
+
+            </section>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    <!-- Application Logic -->
+    <script>
+        // --- 1. MOCK DATA GENERATOR ---
+        const generateData = () => {
+            const floors = ['A12', 'A11', 'A10', 'A09', 'A08', 'A07', 'A06', 'A05', 'A04', 'A03', 'A02', 'A01'];
+            const data = {
+                'CAG': {
+                    nome: 'Central de Água Gelada',
+                    type: 'cag',
+                    equipamentos: {}, // CAG has tabular data usually
+                    dados: [
+                        { tag: 'CAG_TEMP_SAIDA', val: 6.5, qual: 'Good' },
+                        { tag: 'CAG_TEMP_RETORNO', val: 11.2, qual: 'Good' },
+                        { tag: 'CAG_PRESSAO_DIF', val: 1.8, qual: 'Good' },
+                        { tag: 'CAG_VAZAO_PRIM', val: 450.0, qual: 'Good' },
+                        { tag: 'CAG_STATUS_CHILLER1', val: 'ON', qual: 'Good' },
+                        { tag: 'CAG_STATUS_CHILLER2', val: 'OFF', qual: 'Good' }
+                    ]
+                }
+            };
+
+            floors.forEach(floor => {
+                const numEquips = Math.floor(Math.random() * 4) + 4; // 4 to 8 equips
+                const equips = {};
+
+                for (let i = 1; i <= numEquips; i++) {
+                    const id = `${floor}-FC-${String(i).padStart(2, '0')}`;
+                    const isFault = Math.random() > 0.95; // 5% chance of fault
+
+                    equips[id] = {
+                        id: id,
+                        nome: `Fancoil ${i}`,
+                        status: isFault ? 'falha' : 'normal',
+                        maquinas: {
+                            '1': {
+                                temp_real: 23 + (Math.random() * 2),
+                                setpoint: 22.5,
+                                status: isFault ? 'falha' : 'normal',
+                                parametros: { 'Válvula %': Math.floor(Math.random() * 100), 'Ventilação': 'High' }
+                            },
+                            '2': {
+                                temp_real: 22 + (Math.random() * 2),
+                                setpoint: 22.5,
+                                status: 'normal',
+                                parametros: { 'Válvula %': Math.floor(Math.random() * 100), 'Ventilação': 'Auto' }
+                            }
+                        }
+                    };
+                }
+
+                data[floor] = {
+                    nome: `Andar ${floor}`,
+                    type: 'floor',
+                    equipamentos: equips
+                };
+            });
+            return data;
+        };
+
+        // --- 2. APP CONTROLLER ---
+        const app = {
+            data: {},
+            currentView: 'ALL', // Default to showing all
+
+            init: function () {
+                this.data = generateData();
+                this.renderSidebar();
+                this.renderContent(); // Initial Render
+                this.updateKPIs();
+                this.startTimeLoop();
+
+                // Initialize timestamp
+                document.getElementById('last-update').innerText = new Date().toLocaleTimeString();
+            },
+
+            refreshData: function () {
+                const icon = document.querySelector('.fa-sync-alt');
+                icon.classList.add('animate-spin');
+                setTimeout(() => {
+                    this.data = generateData();
+                    this.renderSidebar();
+                    this.renderContent();
+                    this.updateKPIs();
+                    icon.classList.remove('animate-spin');
+                    document.getElementById('last-update').innerText = new Date().toLocaleTimeString();
+                }, 800);
+            },
+
+            updateKPIs: function () {
+                let totalEq = 0;
+                let faultedFloors = 0;
+
+                Object.keys(this.data).forEach(key => {
+                    const floor = this.data[key];
+                    if (floor.type === 'floor') {
+                        let floorHasFault = false;
+                        const equips = Object.values(floor.equipamentos);
+                        totalEq += equips.length;
+
+                        equips.forEach(eq => {
+                            if (eq.status === 'falha') floorHasFault = true;
+                        });
+                        if (floorHasFault) faultedFloors++;
+                    }
+                });
+
+                document.getElementById('kpi-total').innerText = totalEq;
+                const faultEl = document.getElementById('kpi-faults');
+                const faultIcon = document.getElementById('kpi-fault-icon');
+
+                faultEl.innerText = faultedFloors;
+                if (faultedFloors > 0) {
+                    faultEl.className = "text-3xl font-bold text-red-400";
+                    faultIcon.className = "fas fa-exclamation-circle text-red-500";
+                    faultEl.parentElement.parentElement.classList.add('border-red-500/30');
+                } else {
+                    faultEl.className = "text-3xl font-bold text-emerald-400";
+                    faultIcon.className = "fas fa-check-circle text-emerald-500";
+                    faultEl.parentElement.parentElement.classList.remove('border-red-500/30');
+                }
+            },
+
+            renderSidebar: function () {
+                const list = document.getElementById('floor-list');
+                list.innerHTML = '';
+
+                const floors = Object.keys(this.data).filter(k => k !== 'CAG').sort().reverse();
+
+                floors.forEach(key => {
+                    const info = this.data[key];
+                    let hasFault = Object.values(info.equipamentos).some(e => e.status === 'falha');
+                    const numEquips = Object.keys(info.equipamentos).length;
+                    const isActive = this.currentView === key;
+
+                    const div = document.createElement('div');
+                    div.className = `group flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer mb-2
+                        ${isActive ? 'border-cyan-500/30 bg-cyan-500/10' : 'border-slate-700/50 bg-slate-800/30 hover:bg-slate-700/50'}`;
+
+                    div.onclick = () => this.selectFloor(key);
+
+                    div.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <div class="w-2 h-10 rounded-full ${hasFault ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-emerald-500'}"></div>
+                            <div>
+                                <div class="font-bold text-slate-200 group-hover:text-cyan-400 transition-colors">${key}</div>
+                                <div class="text-xs text-slate-500">${numEquips} Fancoils</div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                             <i class="fas fa-chevron-right text-xs text-slate-600 group-hover:text-white transition-colors"></i>
+                        </div>
+                    `;
+                    list.appendChild(div);
+                });
+
+                // Handle Sidebar Buttons State
+                const btnCag = document.getElementById('btn-CAG');
+                const btnAll = document.getElementById('btn-ALL');
+
+                // Reset styles
+                btnCag.className = "w-full p-3 rounded-xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 transition-all text-blue-300 font-bold text-center mb-2 flex items-center justify-center gap-2 group";
+                btnAll.className = "w-full p-2 rounded-lg text-sm text-center text-slate-400 hover:bg-white/5 transition-colors font-semibold border border-transparent";
+
+                if (this.currentView === 'CAG') {
+                    btnCag.className = "w-full p-3 rounded-xl border border-blue-500 bg-blue-500/20 text-blue-300 font-bold text-center mb-2 flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(59,130,246,0.2)]";
+                } else if (this.currentView === 'ALL') {
+                    btnAll.className = "w-full p-2 rounded-lg text-sm text-center text-white bg-white/10 transition-colors font-semibold border border-white/10";
+                }
+            },
+
+            selectFloor: function (floorKey) {
+                this.currentView = floorKey;
+                this.renderSidebar();
+                this.renderContent();
+            },
+
+            // --- 3. NEW RENDER LOGIC FOR MULTI-VIEW ---
+            renderContent: function () {
+                const container = document.getElementById('main-view');
+                container.innerHTML = ''; // Clear current
+
+                // Determine which floors to show
+                let floorsToShow = [];
+                if (this.currentView === 'ALL') {
+                    floorsToShow = Object.keys(this.data).filter(k => k !== 'CAG').sort().reverse();
+                } else {
+                    floorsToShow = [this.currentView];
+                }
+
+                // Render each floor block
+                floorsToShow.forEach(key => {
+                    const data = this.data[key];
+                    if (!data) return;
+
+                    // Create wrapper for the floor
+                    const floorSection = document.createElement('div');
+                    floorSection.className = "animate-fade-in";
+
+                    // HEADER (Sticky for readability when scrolling all)
+                    let headerHtml = `
+                        <div class="flex justify-between items-end mb-4 border-b border-slate-700/50 pb-2 ${this.currentView === 'ALL' ? 'sticky top-0 bg-[#0b1420]/95 pt-4 -mt-4 z-20' : ''} backdrop-blur-md">
+                            <div class="flex items-center gap-4">
+                                <h2 class="text-2xl font-bold text-white">${data.nome}</h2>
+                                ${this.currentView === 'ALL' ?
+                            `<button onclick="app.selectFloor('${key}')" class="text-xs px-2 py-1 rounded bg-slate-800 text-cyan-400 hover:bg-slate-700 border border-slate-700"><i class="fas fa-search-plus mr-1"></i> Focar</button>`
+                            : ''}
+                            </div>
+                            <div class="flex gap-2">
+                                <span class="status-badge badge-neutral"><i class="fas fa-cube mr-1"></i> Live</span>
+                            </div>
+                        </div>
+                    `;
+
+                    let contentHtml = '';
+
+                    if (key === 'CAG') {
+                        // Render CAG Table (Special)
+                        contentHtml = `
+                            <div class="grid grid-cols-1 gap-4 pb-8">
+                                <div class="bg-gradient-to-br from-blue-900/20 to-slate-900/50 border border-blue-500/30 rounded-xl p-6">
+                                    <h3 class="text-xl font-bold text-blue-100 mb-4"><i class="fas fa-water text-blue-400 mr-2"></i> Telemetria Geral</h3>
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full text-sm text-left">
+                                            <thead class="text-xs text-blue-200 uppercase bg-blue-900/30">
+                                                <tr><th class="p-3 rounded-l-lg">Tag</th><th class="p-3 text-right">Valor</th><th class="p-3 text-center rounded-r-lg">Status</th></tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-blue-800/30">
+                                                ${data.dados.map(item => `
+                                                    <tr class="hover:bg-blue-900/10 transition-colors">
+                                                        <td class="p-3 font-mono text-blue-300">${item.tag}</td>
+                                                        <td class="p-3 text-right font-bold text-white text-lg">${item.val}</td>
+                                                        <td class="p-3 text-center"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs">${item.qual}</span></td>
+                                                    </tr>
+                                                `).join('')}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        // Render Fancoils Grid
+                        let cardsHtml = '';
+                        Object.values(data.equipamentos).forEach(eq => {
+                            const isFault = eq.status === 'falha';
+
+                            let maquinasHtml = '';
+                            ['1', '2'].forEach(mid => {
+                                const maq = eq.maquinas[mid];
+                                maquinasHtml += `
+                                    <div class="bg-slate-900/50 rounded-lg p-3 border border-slate-700/30 relative overflow-hidden">
+                                        <div class="text-xs text-slate-400 font-bold mb-2 flex justify-between">
+                                            <span>MÁQUINA ${mid}</span>
+                                            <i class="fas fa-circle text-[6px] ${maq.status === 'falha' ? 'text-red-500' : 'text-emerald-500'}"></i>
+                                        </div>
+                                        <div class="space-y-1 relative z-10">
+                                            <div class="flex justify-between items-baseline">
+                                                <span class="text-xs text-slate-500">Temp</span>
+                                                <span class="font-mono font-bold text-white live-temp">${maq.temp_real.toFixed(1)}<span class="text-xs text-slate-600">°C</span></span>
+                                            </div>
+                                            <div class="flex justify-between items-baseline">
+                                                <span class="text-xs text-slate-500">Set</span>
+                                                <span class="font-mono text-slate-300">${maq.setpoint.toFixed(1)}<span class="text-xs text-slate-600">°C</span></span>
+                                            </div>
+                                        </div>
+                                        <div class="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-cyan-500/0 via-cyan-500/20 to-cyan-500/0 w-full"></div>
+                                    </div>
+                                `;
+                            });
+
+                            cardsHtml += `
+                                <div class="bg-slate-800/40 border ${isFault ? 'border-red-500/30' : 'border-slate-700/50'} rounded-xl p-4 hover:border-cyan-500/30 transition-all hover:shadow-lg hover:shadow-cyan-500/5">
+                                    <div class="flex justify-between items-center mb-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="p-2 bg-slate-700/50 rounded-lg">
+                                                <i class="fas fa-fan ${isFault ? 'text-red-400 animate-pulse' : 'text-cyan-400 fa-spin-slow'}"></i>
+                                            </div>
+                                            <div>
+                                                <div class="font-bold text-slate-200">${eq.nome}</div>
+                                                <div class="text-xs text-slate-500 font-mono">${eq.id}</div>
+                                            </div>
+                                        </div>
+                                        <span class="status-badge ${isFault ? 'badge-danger' : 'badge-success'}">${eq.status}</span>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3 mb-2">${maquinasHtml}</div>
+                                    <div class="mt-2 text-xs">
+                                        <details class="group">
+                                            <summary class="cursor-pointer text-cyan-500 hover:text-cyan-400 font-medium select-none flex items-center gap-1 opacity-80 hover:opacity-100 transition-opacity">
+                                                <i class="fas fa-sliders-h"></i> Parâmetros
+                                            </summary>
+                                            <div class="mt-2 grid grid-cols-1 gap-1 bg-black/20 p-2 rounded border border-white/5">
+                                                <div class="flex justify-between"><span class="text-slate-400">Válvula 1</span><span class="font-mono text-slate-200">45%</span></div>
+                                                <div class="flex justify-between"><span class="text-slate-400">Ventilação</span><span class="font-mono text-slate-200">AUTO</span></div>
+                                            </div>
+                                        </details>
+                                    </div>
+                                </div>
+                            `;
+                        });
+
+                        contentHtml = `<div class="grid grid-cols-1 xl:grid-cols-2 gap-4 pb-8 border-b border-dashed border-slate-800 last:border-0">${cardsHtml}</div>`;
+                    }
+
+                    floorSection.innerHTML = headerHtml + contentHtml;
+                    container.appendChild(floorSection);
+                });
+            },
+
+            startTimeLoop: function () {
+                // Update timestamps
+                setInterval(() => {
+                    const now = new Date();
+                    const next = new Date(now.getTime() + 15 * 60000);
+                    document.getElementById('next-sync').innerText = next.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                    // Random Latency Jitter
+                    document.getElementById('latency-val').innerText = Math.floor(10 + Math.random() * 15);
+                }, 1000);
+
+                // Live Data Simulation (Temperature fluctuation)
+                setInterval(() => {
+                    const tempElements = document.querySelectorAll('.live-temp');
+                    tempElements.forEach(el => {
+                        let val = parseFloat(el.innerText);
+                        val += (Math.random() - 0.5) * 0.2; // Change by +/- 0.1
+                        el.innerHTML = `${val.toFixed(1)}<span class="text-xs text-slate-600">°C</span>`;
+                    });
+                }, 3000);
+            },
+
+            filterFaults: function () {
+                // Quick filter to show only floors with issues
+                alert("Funcionalidade de filtro rápido: Em uma implementação completa, isso mostraria apenas os cards vermelhos na lista.");
+            }
+        };
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', function () {
+            // Start App
+            app.init();
+        });
+    </script>
+
+    <style>
+        .fa-spin-slow {
+            animation: fa-spin 4s infinite linear;
+        }
+
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in {
+            animation: fade-in 0.3s ease-out forwards;
+        }
+    </style>
+{% endblock %}

@@ -1,0 +1,44 @@
+{
+  "edificios": {
+    "Torre Alpha": {
+      "posto": "BI",
+      "chillers": 2,
+      "operacao_24h": false,
+      "coordenadas": "",
+      "mensagem_partida": "Bom dia, a CAG partiu sem anormalidades.",
+      "mensagem_desligamento": "Boa tarde, a CAG foi desligada conforme programado."
+    },
+    "Edificio Beta": {
+      "posto": "AC",
+      "chillers": 3,
+      "operacao_24h": false,
+      "coordenadas": "",
+      "mensagem_partida": "Bom dia, a CAG partiu sem anormalidades.",
+      "mensagem_desligamento": "Boa tarde, a CAG foi desligada conforme programado."
+    },
+    "Shopping Gama": {
+      "posto": "BI",
+      "chillers": 2,
+      "operacao_24h": true,
+      "coordenadas": "",
+      "mensagem_partida": "Bom dia, a CAG partiu sem anormalidades.",
+      "mensagem_desligamento": "Boa tarde, a CAG foi desligada conforme programado."
+    },
+    "Torre Sul": {
+      "posto": "AC",
+      "chillers": 3,
+      "operacao_24h": false,
+      "coordenadas": "",
+      "mensagem_partida": "Bom dia, a CAG partiu sem anormalidades.",
+      "mensagem_desligamento": "Boa tarde, a CAG foi desligada conforme programado."
+    },
+    "Ed. Vera Cruz": {
+      "posto": "BI",
+      "chillers": 2,
+      "operacao_24h": true,
+      "coordenadas": "",
+      "mensagem_partida": "Bom dia, a CAG partiu sem anormalidades.",
+      "mensagem_desligamento": "Boa tarde, a CAG foi desligada conforme programado."
+    }
+  }
+}

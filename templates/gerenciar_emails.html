@@ -1,0 +1,449 @@
+{% extends 'base.html' %}
+
+{% block title %}Gerenciar Emails - Sistema CAG{% endblock %}
+
+{% block head %}
+<meta charset="UTF-8">
+    <style>
+        :root {
+            /* Paleta monocromatica azul */
+            --dark-blue-1: #0a192f;
+            --dark-blue-2: #112240;
+            --medium-blue: #2a4a7f;
+            --light-blue: #4a8fe7;
+            --accent-blue: #64b5f6;
+            --text-primary: #e6f1ff;
+            --text-secondary: #ccd6f6;
+            --text-muted: #8892b0;
+
+            /* Transicoes */
+            --transition-fast: 0.2s ease;
+            --transition-medium: 0.3s ease;
+            --transition-slow: 0.5s ease;
+
+            /* Sombras */
+            --shadow-light: 0 2px 10px rgba(100, 181, 246, 0.1);
+            --shadow-medium: 0 4px 20px rgba(100, 181, 246, 0.15);
+            --shadow-heavy: 0 8px 30px rgba(100, 181, 246, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--dark-blue-1) 0%, var(--dark-blue-2) 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 10px rgba(100, 181, 246, 0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            font-weight: 300;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2rem;
+            background: var(--dark-blue-2);
+            border-radius: 15px;
+            padding: 0.5rem;
+            box-shadow: var(--shadow-medium);
+        }
+
+        .tab-button {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: var(--transition-medium);
+            position: relative;
+        }
+
+        .tab-button.active {
+            background: var(--medium-blue);
+            color: var(--text-primary);
+            box-shadow: var(--shadow-light);
+        }
+
+        .tab-button:hover:not(.active) {
+            color: var(--text-secondary);
+            background: rgba(74, 143, 231, 0.1);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .buildings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .building-card {
+            background: var(--dark-blue-2);
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-medium);
+            border: 1px solid rgba(74, 143, 231, 0.2);
+            transition: var(--transition-medium);
+        }
+
+        .building-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-heavy);
+            border-color: var(--accent-blue);
+        }
+
+        .building-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--accent-blue);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .building-name i {
+            font-size: 1rem;
+        }
+
+        .email-textarea {
+            width: 100%;
+            min-height: 120px;
+            background: var(--dark-blue-1);
+            border: 1px solid rgba(74, 143, 231, 0.3);
+            border-radius: 10px;
+            padding: 1rem;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            resize: vertical;
+            transition: var(--transition-fast);
+        }
+
+        .email-textarea:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(100, 181, 246, 0.1);
+        }
+
+        .save-button {
+            background: linear-gradient(135deg, var(--light-blue), var(--accent-blue));
+            border: none;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-top: 1rem;
+            transition: var(--transition-medium);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .save-button:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .save-button:active {
+            transform: translateY(0);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+        }
+
+        .loading i {
+            font-size: 2rem;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: var(--transition-medium);
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: linear-gradient(135deg, #4caf50, #45a049);
+        }
+
+        .notification.error {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+        }
+
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: var(--dark-blue-2);
+            border: 1px solid rgba(74, 143, 231, 0.3);
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: var(--transition-medium);
+            font-size: 0.9rem;
+        }
+
+        .back-button:hover {
+            background: var(--medium-blue);
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .buildings-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .tabs {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .tab-button {
+                padding: 0.75rem 1rem;
+            }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <a href="/" class="back-button">
+        <i class="fas fa-arrow-left"></i>
+        Voltar ao Dashboard
+    </a>
+
+    <div class="container">
+        <div class="header">
+            <h1>Analytica</h1>
+            <p>Interlinked Ecosystem</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-button active" onclick="switchTab('AC')">
+                <i class="fas fa-building"></i> Pasta AC
+            </button>
+            <button class="tab-button" onclick="switchTab('BI')">
+                <i class="fas fa-city"></i> Pasta BI
+            </button>
+        </div>
+
+        <div class="loading" id="loading">
+            <i class="fas fa-spinner"></i>
+            <p>Carregando dados...</p>
+        </div>
+
+        <div id="tab-AC" class="tab-content active">
+            <div class="buildings-grid" id="ac-buildings">
+                <!-- Conteudo sera carregado via JavaScript -->
+            </div>
+        </div>
+
+        <div id="tab-BI" class="tab-content">
+            <div class="buildings-grid" id="bi-buildings">
+                <!-- Conteudo sera carregado via JavaScript -->
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        let emailsData = {};
+
+        // Carrega os dados iniciais
+        async function loadEmailsData() {
+            try {
+                document.getElementById('loading').style.display = 'block';
+
+                const response = await fetch('/api/buildings_with_emails');
+                emailsData = await response.json();
+
+                renderBuildings('AC');
+                renderBuildings('BI');
+
+                document.getElementById('loading').style.display = 'none';
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+                showNotification('Erro ao carregar dados dos emails', 'error');
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // Renderiza os Edificios de uma pasta
+        function renderBuildings(folder) {
+            const container = document.getElementById(`${folder.toLowerCase()}-buildings`);
+            const buildings = emailsData[folder] || {};
+
+            container.innerHTML = '';
+
+            Object.keys(buildings).forEach(buildingName => {
+                const emails = buildings[buildingName];
+
+                const buildingCard = document.createElement('div');
+                buildingCard.className = 'building-card';
+                buildingCard.innerHTML = `
+                    <div class="building-name">
+                        <i class="fas fa-building"></i>
+                        ${buildingName}
+                    </div>
+                    <textarea 
+                        class="email-textarea" 
+                        placeholder="Digite os emails separados por vírgula ou ponto e vírgula..."
+                        data-folder="${folder}"
+                        data-building="${buildingName}"
+                    >${emails}</textarea>
+                    <button class="save-button" onclick="saveEmails('${folder}', '${buildingName}')">
+                        <i class="fas fa-save"></i>
+                        Salvar
+                    </button>
+                `;
+
+                container.appendChild(buildingCard);
+            });
+        }
+
+        // Troca de abas
+        function switchTab(folder) {
+            // Remove active de todas as abas
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            // Ativa a aba selecionada
+            event.target.classList.add('active');
+            document.getElementById(`tab-${folder}`).classList.add('active');
+        }
+
+        // Salva os emails de um edifício
+        async function saveEmails(folder, building) {
+            try {
+                const textarea = document.querySelector(`textarea[data-folder="${folder}"][data-building="${building}"]`);
+                const emails = textarea.value.trim();
+
+                const response = await fetch('/api/save_emails', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        folder: folder,
+                        building: building,
+                        emails: emails
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showNotification('Emails salvos com sucesso!', 'success');
+                    // Atualiza os dados locais
+                    emailsData[folder][building] = emails;
+                } else {
+                    showNotification(result.message || 'Erro ao salvar emails', 'error');
+                }
+            } catch (error) {
+                console.error('Erro ao salvar emails:', error);
+                showNotification('Erro ao salvar emails', 'error');
+            }
+        }
+
+        // Mostra notificação
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check' : 'exclamation-triangle'}"></i>
+                ${message}
+            `;
+
+            document.body.appendChild(notification);
+
+            setTimeout(() => notification.classList.add('show'), 100);
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => document.body.removeChild(notification), 300);
+            }, 3000);
+        }
+
+        // Carrega os dados quando a página carrega
+        document.addEventListener('DOMContentLoaded', loadEmailsData);
+    </script>
+{% endblock %}

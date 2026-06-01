@@ -1,0 +1,772 @@
+{% extends "base.html" %}
+{% block title %}Analytica - CAG{% endblock %}
+{% block head %}
+<meta charset="UTF-8">
+<style>
+    .cag-section {
+        border-left: 4px solid var(--success);
+    }
+
+    .cag-section.shutdown {
+        border-left-color: var(--error);
+    }
+
+    .switch-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .mode-switch {
+        position: relative;
+        width: 58px;
+        height: 30px;
+    }
+
+    .mode-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .switch-track {
+        position: absolute;
+        inset: 0;
+        border-radius: 999px;
+        background: rgba(114, 224, 168, 0.45);
+        border: 1px solid rgba(114, 224, 168, 0.65);
+        cursor: pointer;
+        transition: background 0.2s ease, border 0.2s ease;
+    }
+
+    .switch-track::after {
+        content: "";
+        position: absolute;
+        width: 22px;
+        height: 22px;
+        left: 3px;
+        top: 3px;
+        border-radius: 50%;
+        background: #fff;
+        transition: transform 0.2s ease;
+    }
+
+    .mode-switch input:checked + .switch-track {
+        background: rgba(255, 107, 122, 0.45);
+        border-color: rgba(255, 107, 122, 0.75);
+    }
+
+    .mode-switch input:checked + .switch-track::after {
+        transform: translateX(28px);
+    }
+
+    .mode-panel {
+        margin-top: 14px;
+        padding: 12px;
+        border-radius: var(--radius);
+        background: rgba(114, 224, 168, 0.08);
+        border: 1px solid rgba(114, 224, 168, 0.24);
+    }
+
+    .cag-section.shutdown .mode-panel {
+        background: rgba(255, 107, 122, 0.08);
+        border-color: rgba(255, 107, 122, 0.24);
+    }
+
+    .modal {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: rgba(3, 8, 18, 0.78);
+        z-index: 80;
+    }
+
+    .modal.active {
+        display: flex;
+    }
+
+    .modal-card {
+        width: min(1040px, 100%);
+        max-height: 92vh;
+        overflow-y: auto;
+    }
+
+    .drop-zone {
+        min-height: 118px;
+        display: grid;
+        place-items: center;
+        gap: 6px;
+        text-align: center;
+        border: 1px dashed var(--line);
+        border-radius: var(--radius);
+        padding: 14px;
+        color: var(--muted);
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .drop-zone.has-image {
+        border-color: var(--accent-2);
+        color: var(--accent-2);
+        background: rgba(124, 231, 178, 0.08);
+    }
+
+    .email-status {
+        min-height: 22px;
+        color: var(--muted);
+    }
+
+    .actions-cell {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    /* Responsividade Avançada Específica da Tela CAG */
+    @media (max-width: 1024px) {
+        .modal-card .grid.two {
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+        
+        .cag-section > div:first-child {
+            flex-direction: column;
+            align-items: flex-start !important;
+        }
+        
+        .switch-row {
+            width: 100%;
+            justify-content: flex-start;
+            margin-top: 8px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .topbar {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+        }
+        
+        .toolbar {
+            width: 100%;
+            justify-content: flex-start;
+        }
+        
+        .toolbar .button {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .actions-cell {
+            flex-direction: column;
+        }
+
+        .actions-cell .button {
+            width: 100%;
+            justify-content: center;
+            font-size: 0.9rem;
+            padding: 8px;
+        }
+
+        .modal-card {
+            padding: 16px;
+            width: 95%;
+            margin: auto;
+        }
+
+        .modal-card .topbar {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .modal-card .toolbar {
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .email-status {
+            text-align: center;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="topbar">
+    <div class="page-title">
+        <h1>Analytica</h1>
+        <p>Interlinked Ecosystem</p>
+    </div>
+    <div class="toolbar">
+        <a class="button secondary" href="{{ url_for('gerenciar_emails') }}">Gerenciar e-mails</a>
+    </div>
+</header>
+
+<section style="display: flex; flex-direction: column; gap: 24px;">
+    <div class="card cag-section" id="section-BI">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+            <h2>Posto BI</h2>
+            <div class="switch-row">
+                <span class="badge ok">Acionamento</span>
+                <label class="mode-switch" title="Alternar BI">
+                    <input type="checkbox" id="bi-mode-switch" onchange="toggleBIMode()">
+                    <span class="switch-track"></span>
+                </label>
+                <span class="badge danger">Desligamento</span>
+            </div>
+        </div>
+        <div class="mode-panel" id="bi-mode-panel">
+            <strong id="bi-mode-title">Modo BI: Acionamento da CAG</strong>
+            <div class="metric-label" id="bi-mode-subtitle">O e-mail gerado usara destaque verde e texto de partida.</div>
+        </div>
+        <div class="table-wrap" style="margin-top:14px;">
+            <table>
+                <thead><tr><th>Edifício</th><th>Destinatários</th><th>Modo</th><th>Status E-mail</th><th>Ações</th></tr></thead>
+                <tbody id="buildings-table-bi-startup"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card cag-section" id="section-AC">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+            <h2>Posto AC</h2>
+            <div class="switch-row">
+                <span class="badge ok">Acionamento</span>
+                <label class="mode-switch" title="Alternar AC">
+                    <input type="checkbox" id="ac-mode-switch" onchange="toggleACMode()">
+                    <span class="switch-track"></span>
+                </label>
+                <span class="badge danger">Desligamento</span>
+            </div>
+        </div>
+        <div class="mode-panel" id="ac-mode-panel">
+            <strong id="ac-mode-title">Modo AC: Acionamento da CAG</strong>
+            <div class="metric-label" id="ac-mode-subtitle">O e-mail gerado usara destaque verde e texto de partida.</div>
+        </div>
+        <div class="table-wrap" style="margin-top:14px;">
+            <table>
+                <thead><tr><th>Edifício</th><th>Destinatários</th><th>Modo</th><th>Status E-mail</th><th>Ações</th></tr></thead>
+                <tbody id="buildings-table-ac-startup"></tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<section class="card" style="margin-top:24px;">
+    <h2>Histórico CAG</h2>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Edifício</th><th>Equipamento</th><th>Tipo</th><th>Status</th><th>Horário</th><th>Origem</th></tr></thead>
+            <tbody>
+            {% for op in operations %}
+                <tr>
+                    <td>{{ op.building_name }}</td>
+                    <td>{{ op.equipment_name }}</td>
+                    <td>{{ op.equipment_type }}</td>
+                    <td><span class="badge {{ 'ok' if op.status == 'ligado' else 'warn' }}">{{ op.status }}</span></td>
+                    <td>{{ op.event_time }}</td>
+                    <td>{{ op.command_origin }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<div class="modal" id="building-modal">
+    <div class="card modal-card">
+        <header class="topbar">
+            <div class="page-title">
+                <h1 id="modal-building-name">Edificio</h1>
+                <p id="modal-operation-preview">Acionamento da CAG</p>
+            </div>
+            <button class="button secondary" type="button" onclick="closeBuildingModal()">Fechar</button>
+        </header>
+
+        <section class="grid two">
+            <div class="card">
+                <h2>Dados do e-mail</h2>
+                <label class="metric-label" for="modal-emails">Destinatarios</label>
+                <textarea class="textarea" id="modal-emails" rows="3" placeholder="email1@exemplo.com; email2@exemplo.com"></textarea>
+
+                <div class="grid two" style="margin-top:12px;">
+                    <div>
+                        <label class="metric-label" for="modal-cag-start-time">Horario</label>
+                        <input class="input" type="time" id="modal-cag-start-time" onchange="updateModalStartTime()">
+                    </div>
+                    <div>
+                        <label class="metric-label" for="modal-startup-status">Status</label>
+                        <select class="select" id="modal-startup-status" onchange="updateModalStartupStatus()">
+                            <option value="normal">Normal</option>
+                            <option value="falha">Houve falha</option>
+                        </select>
+                    </div>
+                </div>
+
+                <label class="metric-label" for="modal-chiller-number" style="display:block; margin-top:12px;">Chillers</label>
+                <select class="select" id="modal-chiller-number" multiple onchange="updateModalChillerNumber()" style="width:100%; min-height:92px;">
+                    <option value="1">Chiller 1</option>
+                    <option value="2">Chiller 2</option>
+                    <option value="3">Chiller 3</option>
+                    <option value="4">Chiller 4</option>
+                </select>
+
+                <label class="metric-label" for="modal-email-message" style="display:block; margin-top:12px;">Mensagem</label>
+                <textarea class="textarea" id="modal-email-message" rows="4" onchange="updateModalMessage()"></textarea>
+
+                <label class="metric-label" for="modal-observations-text" style="display:block; margin-top:12px;">Observacoes</label>
+                <textarea class="textarea" id="modal-observations-text" rows="3" onchange="updateModalObservations()"></textarea>
+            </div>
+
+            <div class="card">
+                <h2>Imagens inline</h2>
+                <div class="grid two">
+                    <div class="drop-zone" id="modal-cag-zone" tabindex="0" ondrop="handleModalImageDrop(event, 'cag')" ondragover="event.preventDefault()" onpaste="handleModalImagePaste(event, 'cag')">
+                        <i class="fa-solid fa-snowflake"></i><strong>Foto CAG</strong><span id="cag-count">0 imagens</span>
+                    </div>
+                    <div class="drop-zone" id="modal-fc-zone" tabindex="0" ondrop="handleModalImageDrop(event, 'fc')" ondragover="event.preventDefault()" onpaste="handleModalImagePaste(event, 'fc')">
+                        <i class="fa-solid fa-fan"></i><strong>Foto FC</strong><span id="fc-count">0 imagens</span>
+                    </div>
+                    <div class="drop-zone" id="modal-weather-zone" tabindex="0" ondrop="handleModalImageDrop(event, 'weather')" ondragover="event.preventDefault()" onpaste="handleModalImagePaste(event, 'weather')">
+                        <i class="fa-solid fa-cloud-sun"></i><strong>Clima</strong><span id="weather-count">0 imagens</span>
+                    </div>
+                    <div class="drop-zone" id="modal-additional-zone" tabindex="0" ondrop="handleModalImageDrop(event, 'additional')" ondragover="event.preventDefault()" onpaste="handleModalImagePaste(event, 'additional')">
+                        <i class="fa-solid fa-images"></i><strong>Adicionais</strong><span id="additional-count">0 imagens</span>
+                    </div>
+                </div>
+                <p class="metric-label" style="margin-top:12px;">Arraste, cole ou solte imagens. Se nenhuma imagem for adicionada, o demo inclui imagens PNG inline geradas automaticamente.</p>
+            </div>
+        </section>
+
+        <div class="toolbar" style="justify-content:flex-end; margin-top:16px;">
+            <span class="email-status" id="email-status"></span>
+            <button class="button secondary" type="button" onclick="saveEmailsFromModal()">Salvar destinatarios</button>
+            <button class="button" type="button" onclick="saveAndSendBuilding()">Gerar E-mail</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let buildingData = {};
+let buildingStates = {};
+let buildingMetadata = {};
+let currentModalBuilding = null;
+
+document.addEventListener("DOMContentLoaded", () => {
+    loadBuildingData();
+    toggleBIMode();
+    toggleACMode();
+});
+
+async function loadBuildingData() {
+    const response = await fetch("/api/buildings_with_emails");
+    const data = await response.json();
+    for (const [posto, buildings] of Object.entries(data)) {
+        Object.keys(buildings || {}).forEach((name) => {
+            buildingData[name] = { posto, emails: buildings[name] || [] };
+            initBuildingState(name);
+        });
+    }
+    await loadBuildingMetadata();
+    renderBuildingsTable();
+}
+
+async function loadBuildingMetadata() {
+    try {
+        const response = await fetch("/api/edificios_metadata");
+        const payload = await response.json();
+        buildingMetadata = payload.edificios || {};
+    } catch (error) {
+        buildingMetadata = {};
+    }
+}
+
+function initBuildingState(name) {
+    if (buildingStates[name]) return;
+    buildingStates[name] = {
+        status: "pending",
+        cagImages: [],
+        fcImages: [],
+        weatherImages: [],
+        additionalImages: [],
+        observations: "",
+        cagStartTime: "",
+        startupStatus: "normal",
+        chillerNumbers: ["1"],
+        emailMessage: ""
+    };
+}
+
+function getOperationForPosto(posto) {
+    const checked = document.getElementById(`${posto.toLowerCase()}-mode-switch`)?.checked;
+    return checked
+        ? { key: "desligamento", label: "Desligamento", color: "#ff6b7a", badge: "danger" }
+        : { key: "acionamento", label: "Acionamento", color: "#72e0a8", badge: "ok" };
+}
+
+function renderBuildingsTable() {
+    const biTbody = document.getElementById("buildings-table-bi-startup");
+    const acTbody = document.getElementById("buildings-table-ac-startup");
+    biTbody.innerHTML = "";
+    acTbody.innerHTML = "";
+
+    Object.keys(buildingData).sort().forEach((name) => {
+        const info = buildingData[name];
+        const state = buildingStates[name];
+        const operation = getOperationForPosto(info.posto);
+        
+        let emailStatusHtml = '';
+        if (state && state.status === "sent") {
+            emailStatusHtml = `<span style="color: #72e0a8; display: flex; align-items: center; gap: 6px;"><i class="fas fa-check-circle"></i> Enviado</span>`;
+        } else {
+            emailStatusHtml = `<span style="color: var(--muted); display: flex; align-items: center; gap: 6px;"><i class="fas fa-clock"></i> Pendente</span>`;
+        }
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td><strong>${escapeHtml(name)}</strong></td>
+            <td>${escapeHtml((info.emails || []).join("; ") || "operacao@exemplo.com")}</td>
+            <td><span class="badge ${operation.badge}">${operation.label} da CAG</span></td>
+            <td>${emailStatusHtml}</td>
+            <td class="actions-cell">
+                <button class="button secondary" type="button" onclick="openBuildingModal('${escapeAttribute(name)}')">Detalhes</button>
+                <button class="button" type="button" onclick="openOutlookEmail('${escapeAttribute(name)}')">Gerar E-mail</button>
+            </td>
+        `;
+        (info.posto === "BI" ? biTbody : acTbody).appendChild(row);
+    });
+}
+
+function openBuildingModal(buildingName) {
+    currentModalBuilding = buildingName;
+    const info = buildingData[buildingName];
+    const state = buildingStates[buildingName];
+    const operation = getOperationForPosto(info.posto);
+    const meta = buildingMetadata[buildingName] || {};
+
+    document.getElementById("modal-building-name").textContent = buildingName;
+    document.getElementById("modal-operation-preview").textContent = `${operation.label} da CAG`;
+    document.getElementById("modal-operation-preview").style.color = operation.color;
+    document.getElementById("modal-emails").value = (info.emails || []).join("; ");
+    document.getElementById("modal-cag-start-time").value = state.cagStartTime || new Date().toTimeString().slice(0, 5);
+    document.getElementById("modal-startup-status").value = state.startupStatus || "normal";
+    document.getElementById("modal-observations-text").value = state.observations || "";
+    document.getElementById("modal-email-message").value = state.emailMessage || defaultMessage(meta, operation.key);
+
+    Array.from(document.getElementById("modal-chiller-number").options).forEach((option) => {
+        option.selected = state.chillerNumbers.includes(option.value);
+    });
+    refreshImageCounts();
+    document.getElementById("email-status").textContent = "";
+    document.getElementById("building-modal").classList.add("active");
+}
+
+function closeBuildingModal() {
+    document.getElementById("building-modal").classList.remove("active");
+    currentModalBuilding = null;
+}
+
+function defaultMessage(meta, key) {
+    if (key === "desligamento") {
+        return meta.mensagem_desligamento || "Boa tarde, a CAG foi desligada conforme programado.";
+    }
+    return meta.mensagem_partida || "Bom dia, a CAG foi acionada sem anormalidades.";
+}
+
+function updateModalStartTime() {
+    if (currentModalBuilding) buildingStates[currentModalBuilding].cagStartTime = document.getElementById("modal-cag-start-time").value;
+}
+
+function updateModalStartupStatus() {
+    if (currentModalBuilding) buildingStates[currentModalBuilding].startupStatus = document.getElementById("modal-startup-status").value;
+}
+
+function updateModalChillerNumber() {
+    if (!currentModalBuilding) return;
+    buildingStates[currentModalBuilding].chillerNumbers = Array.from(document.getElementById("modal-chiller-number").selectedOptions).map((option) => option.value);
+}
+
+function updateModalObservations() {
+    if (currentModalBuilding) buildingStates[currentModalBuilding].observations = document.getElementById("modal-observations-text").value;
+}
+
+function updateModalMessage() {
+    if (currentModalBuilding) buildingStates[currentModalBuilding].emailMessage = document.getElementById("modal-email-message").value;
+}
+
+async function saveEmailsFromModal() {
+    if (!currentModalBuilding) return;
+    const info = buildingData[currentModalBuilding];
+    const emailString = document.getElementById("modal-emails").value.trim();
+    info.emails = emailString.split(/[;,\n\r]+/).map((email) => email.trim()).filter(Boolean);
+    const response = await fetch("/api/save_emails", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folder: info.posto, building: currentModalBuilding, emails: emailString })
+    });
+    const payload = await response.json();
+    document.getElementById("email-status").textContent = payload.success ? "Destinatarios salvos." : (payload.message || "Nao foi possivel salvar.");
+    renderBuildingsTable();
+}
+
+function saveAndSendBuilding() {
+    if (!currentModalBuilding) return;
+    updateModalStartTime();
+    updateModalStartupStatus();
+    updateModalChillerNumber();
+    updateModalObservations();
+    updateModalMessage();
+    openOutlookEmail(currentModalBuilding);
+}
+
+function openOutlookEmail(buildingName) {
+    const state = buildingStates[buildingName];
+    const info = buildingData[buildingName];
+    generateEmlWithInlineImages(buildingName, state, info.emails || []);
+    state.status = "sent";
+    document.getElementById("email-status").textContent = "Arquivo .eml gerado e baixado.";
+    renderBuildingsTable();
+}
+
+function generateEmailTemplate(buildingName, state) {
+    const info = buildingData[buildingName] || { posto: "BI" };
+    const operation = getOperationForPosto(info.posto);
+    const now = new Date();
+    const dateString = now.toLocaleDateString("pt-BR");
+    const timeString = state.cagStartTime || now.toTimeString().slice(0, 5);
+    const subject = `${buildingName} - ${operation.label} da CAG`;
+    const chillers = state.chillerNumbers.length ? state.chillerNumbers.map((item) => `Chiller ${item}`).join(", ") : "CAG";
+    const statusText = state.startupStatus === "falha" ? "com ocorrencia registrada" : "sem anormalidades";
+    const message = state.emailMessage || defaultMessage(buildingMetadata[buildingName] || {}, operation.key);
+    const borderColor = operation.color;
+    const body = `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body style="margin:0; padding:0; font-family:Arial, sans-serif; color:#172033; background:#f4f7fb;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f7fb; padding:24px;">
+    <tr><td>
+      <table role="presentation" width="760" cellspacing="0" cellpadding="0" style="max-width:760px; width:100%; margin:auto; background:#ffffff; border:1px solid #d9e2ef; border-left:8px solid ${borderColor};">
+        <tr><td style="padding:22px 26px;">
+          <h1 style="margin:0 0 6px; color:#0f1e35; font-size:24px;">${escapeHtml(subject)}</h1>
+          <p style="margin:0; color:#52657f;">${escapeHtml(dateString)} as ${escapeHtml(timeString)}</p>
+        </td></tr>
+        <tr><td style="padding:0 26px 18px;">
+          <p>${escapeHtml(message)}</p>
+          <p><strong>Edificio:</strong> ${escapeHtml(buildingName)}</p>
+          <p><strong>Operacao:</strong> ${escapeHtml(operation.label)} da CAG</p>
+          <p><strong>Equipamentos:</strong> ${escapeHtml(chillers)}</p>
+          <p><strong>Status:</strong> ${escapeHtml(statusText)}</p>
+          ${state.observations ? `<p><strong>Observacoes:</strong> ${escapeHtml(state.observations)}</p>` : ""}
+        </td></tr>
+        <tr><td style="padding:0 26px 22px;">
+          <h2 style="font-size:18px; color:#0f1e35;">Evidencias inline</h2>
+          <p style="color:#52657f;">As imagens abaixo seguem anexadas inline no arquivo .eml.</p>
+          ${buildInlineImageHtml(buildingName, state)}
+        </td></tr>
+        <tr><td style="padding:18px 26px; background:#eef3f9; color:#52657f;">
+          <p style="margin:0;">Atenciosamente,<br>Equipe Analytica<br>Central de Utilidades</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+    return { subject, body };
+}
+
+function buildInlineImageHtml(buildingName, state) {
+    const groups = collectInlineImages(buildingName, state);
+    return groups.map((item) => `
+        <div style="margin:16px 0;">
+            <p style="margin:0 0 6px; font-weight:bold;">${escapeHtml(item.label)}</p>
+            <img src="cid:${item.cid}" alt="${escapeAttribute(item.label)}" style="max-width:680px; width:100%; border:1px solid #d9e2ef;">
+        </div>
+    `).join("");
+}
+
+function generateEmlWithInlineImages(buildingName, state, emailData) {
+    const recipients = Array.isArray(emailData) ? emailData : [];
+    const { subject, body } = generateEmailTemplate(buildingName, state);
+    const images = collectInlineImages(buildingName, state);
+    const boundary = `analytica_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    let eml = "";
+    eml += `From: Analytica <analytica@exemplo.com>\r\n`;
+    eml += `To: ${recipients.join("; ")}\r\n`;
+    eml += `Subject: ${encodeMimeHeader(subject)}\r\n`;
+    eml += `Date: ${new Date().toUTCString()}\r\n`;
+    eml += `MIME-Version: 1.0\r\n`;
+    eml += `X-Unsent: 1\r\n`;
+    eml += `Content-Type: multipart/related; type="text/html"; boundary="${boundary}"\r\n\r\n`;
+    eml += `--${boundary}\r\n`;
+    eml += `Content-Type: text/html; charset=UTF-8\r\n`;
+    eml += `Content-Transfer-Encoding: base64\r\n\r\n`;
+    eml += `${wrapBase64(utf8ToBase64(body))}\r\n\r\n`;
+
+    images.forEach((image) => {
+        eml += `--${boundary}\r\n`;
+        eml += `Content-Type: ${image.mime}; name="${image.filename}"\r\n`;
+        eml += `Content-Transfer-Encoding: base64\r\n`;
+        eml += `Content-ID: <${image.cid}>\r\n`;
+        eml += `Content-Disposition: inline; filename="${image.filename}"\r\n\r\n`;
+        eml += `${wrapBase64(image.base64)}\r\n\r\n`;
+    });
+    eml += `--${boundary}--\r\n`;
+
+    const blob = new Blob([eml], { type: "message/rfc822;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${slugify(buildingName)}_${slugify(subject)}.eml`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    return true;
+}
+
+function collectInlineImages(buildingName, state) {
+    const specs = [
+        ["cag", "Foto CAG"],
+        ["fc", "Foto FC"],
+        ["weather", "Clima"],
+        ["additional", "Imagem adicional"]
+    ];
+    const result = [];
+    specs.forEach(([type, label]) => {
+        const key = `${type}Images`;
+        const images = state[key] && state[key].length ? state[key] : [createPlaceholderPng(label, buildingName)];
+        images.forEach((dataUrl, index) => {
+            const parsed = parseDataUrl(dataUrl);
+            result.push({
+                cid: `${type}_${slugify(buildingName)}_${index + 1}`,
+                label: `${label} ${index + 1}`,
+                filename: `${type}_${slugify(buildingName)}_${index + 1}.${parsed.ext}`,
+                mime: parsed.mime,
+                base64: parsed.base64
+            });
+        });
+    });
+    return result;
+}
+
+function createPlaceholderPng(label, buildingName) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 720;
+    canvas.height = 180;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#112240";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#5cc8ff";
+    ctx.fillRect(0, 0, canvas.width, 8);
+    ctx.fillStyle = "#edf4ff";
+    ctx.font = "bold 30px Arial";
+    ctx.fillText(label, 28, 78);
+    ctx.fillStyle = "#9fb0c8";
+    ctx.font = "20px Arial";
+    ctx.fillText(`${buildingName} - imagem demonstrativa inline`, 28, 118);
+    return canvas.toDataURL("image/png");
+}
+
+function parseDataUrl(dataUrl) {
+    const match = /^data:([^;]+);base64,(.+)$/i.exec(dataUrl);
+    const mime = match ? match[1] : "image/png";
+    const base64 = match ? match[2] : dataUrl;
+    const ext = mime.includes("jpeg") || mime.includes("jpg") ? "jpg" : mime.includes("webp") ? "webp" : "png";
+    return { mime, base64, ext };
+}
+
+function handleModalImageDrop(event, type) {
+    event.preventDefault();
+    addFilesToState(event.dataTransfer.files, type);
+}
+
+function handleModalImagePaste(event, type) {
+    addFilesToState(event.clipboardData.files, type);
+}
+
+function addFilesToState(files, type) {
+    if (!currentModalBuilding) return;
+    Array.from(files || []).filter((file) => file.type.startsWith("image/")).forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            buildingStates[currentModalBuilding][`${type}Images`].push(reader.result);
+            refreshImageCounts();
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+function refreshImageCounts() {
+    if (!currentModalBuilding) return;
+    const state = buildingStates[currentModalBuilding];
+    ["cag", "fc", "weather", "additional"].forEach((type) => {
+        const count = state[`${type}Images`].length;
+        document.getElementById(`${type}-count`).textContent = `${count} imagens`;
+        document.getElementById(`modal-${type}-zone`).classList.toggle("has-image", count > 0);
+    });
+}
+
+function toggleBIMode() {
+    updateModeUi("BI");
+}
+
+function toggleACMode() {
+    updateModeUi("AC");
+}
+
+function updateModeUi(posto) {
+    const operation = getOperationForPosto(posto);
+    const section = document.getElementById(`section-${posto}`);
+    section.classList.toggle("shutdown", operation.key === "desligamento");
+    document.getElementById(`${posto.toLowerCase()}-mode-title`).textContent = `Modo ${posto}: ${operation.label} da CAG`;
+    document.getElementById(`${posto.toLowerCase()}-mode-subtitle`).textContent = operation.key === "desligamento"
+        ? "O e-mail gerado usara destaque vermelho e texto de encerramento."
+        : "O e-mail gerado usara destaque verde e texto de partida.";
+    renderBuildingsTable();
+    if (currentModalBuilding && buildingData[currentModalBuilding]?.posto === posto) {
+        openBuildingModal(currentModalBuilding);
+    }
+}
+
+function encodeMimeHeader(value) {
+    return `=?UTF-8?B?${utf8ToBase64(value)}?=`;
+}
+
+function utf8ToBase64(value) {
+    const bytes = new TextEncoder().encode(value);
+    let binary = "";
+    bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
+    return btoa(binary);
+}
+
+function wrapBase64(value) {
+    return value.replace(/.{1,76}/g, "$&\r\n").trim();
+}
+
+function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    }[char]));
+}
+
+function escapeAttribute(value) {
+    return escapeHtml(value).replace(/`/g, "&#96;");
+}
+
+function slugify(value) {
+    return String(value || "analytica").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").toLowerCase();
+}
+</script>
+{% endblock %}

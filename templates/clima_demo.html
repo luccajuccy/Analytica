@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Analytica - Clima{% endblock %}
+{% block head %}
+<meta charset="UTF-8">
+<script src="{{ url_for('static', filename='vendor/plotly.min.js') }}"></script>
+{% endblock %}
+{% block content %}
+<header class="topbar">
+    <div class="page-title">
+        <h1>Analytica</h1>
+        <p>Interlinked Ecosystem</p>
+    </div>
+    <div class="toolbar"><span class="badge">Sao Paulo - atualizado {{ timestamp }}</span></div>
+</header>
+
+{% if error %}
+<section class="card"><span class="badge danger">{{ error }}</span></section>
+{% else %}
+<section class="grid cards">
+    <div class="card"><span class="metric-label">Cidade</span><strong class="metric-value">{{ weather.name }}</strong></div>
+    <div class="card"><span class="metric-label">Temperatura externa</span><strong class="metric-value">{{ weather.main.temp }}C</strong></div>
+    <div class="card"><span class="metric-label">Umidade</span><strong class="metric-value">{{ weather.main.humidity }}%</strong></div>
+    <div class="card"><span class="metric-label">Condicao</span><strong class="metric-value">{{ weather.weather[0].description }}</strong></div>
+</section>
+
+<section class="grid two" style="margin-top:16px;">
+    <div class="card">
+        <h2>Historico de temperatura - ultimos 7 dias</h2>
+        <div id="weatherChart" class="chart"></div>
+    </div>
+    <div class="card">
+        <h2>Noticias meteorologicas</h2>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Manchete</th><th>Resumo</th></tr></thead>
+                <tbody>
+                {% for item in news %}
+                    <tr><td>{{ item.title }}</td><td>{{ item.summary }}</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+{% if not error %}
+<script>
+const weatherLayout = {
+    paper_bgcolor: "rgba(0,0,0,0)",
+    plot_bgcolor: "rgba(0,0,0,0)",
+    font: {color: "#edf4ff"},
+    margin: {l: 58, r: 24, t: 20, b: 72},
+    xaxis: {title: "Data e hora", tickangle: -35, gridcolor: "rgba(255,255,255,0.08)"},
+    yaxis: {title: "Temperatura em C", gridcolor: "rgba(255,255,255,0.08)"},
+    legend: {orientation: "h", y: 1.12}
+};
+Plotly.react("weatherChart", [
+    {type:"scatter", mode:"lines", name:"Temperatura", x: {{ history_labels|tojson }}, y: {{ history_temps|tojson }}, line:{color:"#5cc8ff", width:3}},
+    {type:"scatter", mode:"lines", name:"Tendencia", x: {{ history_labels|tojson }}, y: {{ history_trend|tojson }}, line:{color:"#ffcf70", width:2, dash:"dash"}},
+    {type:"scatter", mode:"lines", name:"Minima", x: {{ history_labels|tojson }}, y: {{ history_min|tojson }}, line:{color:"#7ce7b2", width:1}},
+    {type:"scatter", mode:"lines", name:"Maxima", x: {{ history_labels|tojson }}, y: {{ history_max|tojson }}, line:{color:"#ff6b7a", width:1}}
+], weatherLayout, {displayModeBar:false, responsive:true});
+</script>
+{% endif %}
+{% endblock %}

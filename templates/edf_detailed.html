@@ -1,0 +1,749 @@
+{% extends "base.html" %}
+{% block title %}Analytica - Edifícios{% endblock %}
+{% block head %}
+<meta charset="UTF-8">
+<style>
+    /* ============================================
+       Edifícios Page – Premium Dark Design
+       ============================================ */
+
+    .edf-page-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        animation: fadeIn 0.5s ease-out forwards;
+    }
+
+    .edf-page-header h1 {
+        font-size: 2.4rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, var(--accent-blue), #7ce7b2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 0.5rem;
+    }
+
+    .edf-page-header p {
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+    }
+
+    /* Search & Filters Bar */
+    .edf-filters-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: center;
+        justify-content: space-between;
+        background: rgba(17, 34, 64, 0.75);
+        backdrop-filter: blur(12px);
+        padding: 1.2rem 1.5rem;
+        border-radius: var(--border-radius);
+        border: 1px solid rgba(42, 74, 127, 0.3);
+        margin-bottom: 2rem;
+    }
+
+    .edf-search-wrap {
+        position: relative;
+        flex: 1;
+        min-width: 250px;
+    }
+
+    .edf-search-wrap i {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-secondary);
+        font-size: 1rem;
+    }
+
+    .edf-search-input {
+        width: 100%;
+        padding: 0.75rem 1rem 0.75rem 2.8rem;
+        background: rgba(10, 25, 47, 0.8);
+        border: 1px solid rgba(42, 74, 127, 0.3);
+        border-radius: var(--border-radius);
+        color: var(--text-primary);
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+    }
+
+    .edf-search-input:focus {
+        outline: none;
+        border-color: var(--accent-blue);
+        box-shadow: 0 0 15px rgba(74, 143, 231, 0.15);
+    }
+
+    .edf-filter-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .edf-filter-btn {
+        padding: 0.5rem 1rem;
+        border-radius: var(--border-radius);
+        border: 1px solid rgba(42, 74, 127, 0.3);
+        background: transparent;
+        color: var(--text-secondary);
+        cursor: pointer;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        transition: all 0.2s;
+    }
+
+    .edf-filter-btn:hover {
+        border-color: var(--accent-blue);
+        color: var(--accent-blue);
+    }
+
+    .edf-filter-btn.active {
+        background: linear-gradient(135deg, var(--accent-blue), #7ce7b2);
+        color: #06111f;
+        border-color: transparent;
+        font-weight: 800;
+    }
+
+    /* Buildings Grid */
+    .edf-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 20px;
+        margin-bottom: 2rem;
+    }
+
+    /* Building Card */
+    .edf-card {
+        background: rgba(17, 34, 64, 0.75);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .edf-card:hover {
+        transform: translateY(-3px);
+        border-color: rgba(255, 255, 255, 0.15);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
+
+    .edf-card-strip {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+    }
+
+    .edf-card-strip.online { background: var(--success); }
+    .edf-card-strip.offline { background: var(--error); }
+
+    /* Card Header */
+    .edf-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+        border-bottom: 1px solid rgba(42, 74, 127, 0.2);
+        background: rgba(10, 25, 47, 0.3);
+        position: relative;
+    }
+
+    .edf-status-orb {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(42, 74, 127, 0.3);
+    }
+
+    .edf-status-orb.online {
+        background: rgba(102, 187, 106, 0.15);
+        animation: edf-pulse-success 2s infinite;
+    }
+
+    .edf-status-orb.offline {
+        background: rgba(239, 83, 80, 0.15);
+        animation: edf-pulse-error 2s infinite;
+    }
+
+    @keyframes edf-pulse-success {
+        0% { box-shadow: 0 0 0 0 rgba(102, 187, 106, 0.5); }
+        70% { box-shadow: 0 0 0 8px rgba(102, 187, 106, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(102, 187, 106, 0); }
+    }
+
+    @keyframes edf-pulse-error {
+        0% { box-shadow: 0 0 0 0 rgba(239, 83, 80, 0.5); }
+        70% { box-shadow: 0 0 0 8px rgba(239, 83, 80, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(239, 83, 80, 0); }
+    }
+
+    .edf-status-orb i {
+        font-size: 2rem;
+    }
+
+    .edf-status-orb.online i { color: var(--success); }
+    .edf-status-orb.offline i { color: var(--error); }
+
+    /* Temperature chip in header */
+    .edf-temp-chip {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: rgba(42, 74, 127, 0.4);
+        padding: 4px 10px;
+        border-radius: 6px;
+        border: 1px solid rgba(42, 74, 127, 0.5);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .edf-temp-chip i { color: var(--accent-blue); font-size: 0.85rem; }
+    .edf-temp-chip span { font-size: 0.8rem; font-weight: 700; color: var(--text-primary); font-family: monospace; }
+
+    /* Card Body */
+    .edf-card-body {
+        padding: 1.2rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .edf-card-title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .edf-card-title-row h3 {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Status Badges */
+    .edf-mini-badges {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    /* Metrics Row */
+    .edf-metrics-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+
+    .edf-metric {
+        background: rgba(10, 25, 47, 0.5);
+        padding: 10px;
+        border-radius: var(--border-radius);
+        border: 1px solid rgba(42, 74, 127, 0.2);
+        text-align: center;
+    }
+
+    .edf-metric-label {
+        font-size: 0.7rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .edf-metric-value {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        font-family: monospace;
+    }
+
+    /* IPs / Links Section */
+    .edf-links-section {
+        background: rgba(10, 25, 47, 0.5);
+        padding: 10px;
+        border-radius: var(--border-radius);
+        border: 1px solid rgba(42, 74, 127, 0.2);
+    }
+
+    .edf-links-title {
+        font-size: 0.7rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+
+    .edf-link-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-family: monospace;
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        padding: 3px 0;
+    }
+
+    .edf-link-row .edf-link-left {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .edf-link-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+    }
+
+    .edf-link-dot.online { background: var(--success); }
+    .edf-link-dot.offline { background: var(--error); }
+
+    /* Signal Strength Bar */
+    .edf-signal-bar {
+        display: flex;
+        gap: 2px;
+        align-items: flex-end;
+        height: 14px;
+    }
+
+    .edf-signal-bar span {
+        width: 3px;
+        border-radius: 1px;
+        transition: background 0.3s;
+    }
+
+    /* Sparkline */
+    .edf-sparkline {
+        width: 100%;
+        height: 36px;
+    }
+
+    /* Open Button */
+    .edf-open-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px;
+        border-radius: var(--border-radius);
+        background: linear-gradient(135deg, rgba(74, 143, 231, 0.2), rgba(124, 231, 178, 0.2));
+        border: 1px solid rgba(74, 143, 231, 0.3);
+        color: var(--text-primary);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+        margin-top: auto;
+    }
+
+    .edf-open-btn:hover {
+        background: linear-gradient(135deg, rgba(74, 143, 231, 0.4), rgba(124, 231, 178, 0.4));
+        transform: translateY(-1px);
+    }
+
+    /* Map Section */
+    .edf-map-section {
+        background: rgba(17, 34, 64, 0.75);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(42, 74, 127, 0.3);
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        margin-bottom: 2rem;
+    }
+
+    .edf-map-header {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid rgba(42, 74, 127, 0.2);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .edf-map-header h2 {
+        margin: 0;
+        font-size: 1.2rem;
+        color: var(--text-primary);
+    }
+
+    .edf-map-header i {
+        color: var(--accent-blue);
+    }
+
+    #edfMap {
+        width: 100%;
+        height: 400px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .edf-grid {
+            grid-template-columns: 1fr;
+        }
+        .edf-filters-bar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .edf-filter-buttons {
+            overflow-x: auto;
+            flex-wrap: nowrap;
+            padding-bottom: 4px;
+        }
+        .edf-metrics-row {
+            grid-template-columns: repeat(3, 1fr);
+        }
+        #edfMap {
+            height: 280px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .edf-page-header h1 {
+            font-size: 1.8rem;
+        }
+    }
+</style>
+<!-- Leaflet CSS for Map -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+{% endblock %}
+
+{% block content %}
+    <!-- Page Header -->
+    <div class="edf-page-header">
+        <h1>Edifícios</h1>
+        <p>Explore o portfólio de edifícios e encontre informações detalhadas sobre cada propriedade</p>
+    </div>
+
+    <!-- Search & Filters -->
+    <div class="edf-filters-bar">
+        <div class="edf-search-wrap">
+            <i class="fas fa-search"></i>
+            <input type="text" id="edfSearch" class="edf-search-input" placeholder="Buscar edifícios...">
+        </div>
+        <div class="edf-filter-buttons" id="edfFilterBtns">
+            <button class="edf-filter-btn active" data-filter="all">Todos</button>
+        </div>
+    </div>
+
+    <!-- Map Section -->
+    <div class="edf-map-section">
+        <div class="edf-map-header">
+            <i class="fas fa-map-marked-alt"></i>
+            <h2>Mapa de Edifícios</h2>
+        </div>
+        <div id="edfMap"></div>
+    </div>
+
+    <!-- Buildings Grid -->
+    <div class="edf-grid" id="edfGrid">
+        {% for building in buildings %}
+        <div class="edf-card" data-name="{{ building.name|lower }}" data-status="{{ building.status }}">
+            <div class="edf-card-strip {{ 'online' if building.status == 'online' else 'offline' }}"></div>
+
+            <!-- Header with Orb -->
+            <div class="edf-card-header">
+                <div class="edf-status-orb {{ 'online' if building.status == 'online' else 'offline' }}">
+                    <i class="fas {{ 'fa-building' if building.status == 'online' else 'fa-building-circle-xmark' }}"></i>
+                </div>
+                <div class="edf-temp-chip">
+                    <i class="fas fa-snowflake"></i>
+                    <span>{{ "%.1f"|format(building.avg_temp) }}°C</span>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="edf-card-body">
+                <!-- Title Row -->
+                <div class="edf-card-title-row">
+                    <h3 title="{{ building.name }}">{{ building.name }}</h3>
+                    <div class="edf-mini-badges">
+                        <span class="badge {{ 'ok' if building.status == 'online' else 'danger' }}">{{ building.status|upper }}</span>
+                        <span class="badge {{ 'ok' if building.cag_status == 'ligado' else 'warn' }}">CAG {{ building.cag_status|upper }}</span>
+                    </div>
+                </div>
+
+                <!-- Metrics: Ping, Availability, Sensors -->
+                <div class="edf-metrics-row">
+                    <div class="edf-metric">
+                        <div class="edf-metric-label">Ping</div>
+                        <div class="edf-metric-value" style="color: {{ 'var(--success)' if building.ping_ms else 'var(--error)' }}">
+                            {{ building.ping_ms|string + 'ms' if building.ping_ms else 'ERR' }}
+                        </div>
+                    </div>
+                    <div class="edf-metric">
+                        <div class="edf-metric-label">Uptime</div>
+                        <div class="edf-metric-value" style="color: {{ 'var(--success)' if building.availability > 95 else ('var(--warning)' if building.availability > 50 else 'var(--error)') }}">
+                            {{ building.availability }}%
+                        </div>
+                    </div>
+                    <div class="edf-metric">
+                        <div class="edf-metric-label">Sensores</div>
+                        <div class="edf-metric-value">{{ building.total_sensors }}</div>
+                    </div>
+                </div>
+
+                <!-- Disponibilidade dos Links -->
+                <div class="edf-links-section">
+                    <div class="edf-links-title">
+                        <i class="fas fa-network-wired" style="margin-right: 4px;"></i>
+                        Disponibilidade dos Links
+                    </div>
+                    {% if building.ips %}
+                        {% for ip_info in building.ips %}
+                        <div class="edf-link-row">
+                            <span class="edf-link-left">
+                                <span class="edf-link-dot {{ 'online' if ip_info.online else 'offline' }}"></span>
+                                {{ ip_info.ip }} {% if ip_info.label %}<span style="color: var(--accent-blue);">({{ ip_info.label }})</span>{% endif %}
+                            </span>
+                            <span style="display: flex; align-items: center; gap: 8px;">
+                                <span style="color: {{ 'var(--success)' if ip_info.online else 'var(--error)' }};">{{ ip_info.ping|string + 'ms' if ip_info.ping else 'timeout' }}</span>
+                                <!-- Signal Strength -->
+                                <span class="edf-signal-bar">
+                                    {% if ip_info.online %}
+                                        {% set strength = 5 if ip_info.ping < 8 else (4 if ip_info.ping < 12 else (3 if ip_info.ping < 16 else 2)) %}
+                                        {% for i in range(1, 6) %}
+                                            <span style="height: {{ i * 3 }}px; background: {{ 'var(--success)' if i <= strength else 'rgba(42, 74, 127, 0.3)' }};"></span>
+                                        {% endfor %}
+                                    {% else %}
+                                        {% for i in range(1, 6) %}
+                                            <span style="height: {{ i * 3 }}px; background: rgba(239, 83, 80, 0.3);"></span>
+                                        {% endfor %}
+                                    {% endif %}
+                                </span>
+                            </span>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="edf-link-row" style="justify-content: center; color: var(--text-secondary); font-style: italic;">
+                            Nenhum link configurado
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Sparkline: Disponibilidade 7 dias -->
+                <div style="background: rgba(10, 25, 47, 0.5); padding: 10px; border-radius: var(--border-radius); border: 1px solid rgba(42, 74, 127, 0.2);">
+                    <div class="edf-links-title">Disponibilidade (7 dias)</div>
+                    <canvas class="edf-sparkline" data-values="{{ building.availability_history | join(',') }}" data-online="{{ 'true' if building.status == 'online' else 'false' }}"></canvas>
+                </div>
+
+                <!-- Open Button -->
+                <a class="edf-open-btn" href="{{ url_for('building_page', nome=building.slug) }}">
+                    <i class="fas fa-external-link-alt"></i>
+                    Acessar Edifício
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+    // ========================================
+    // 1. SEARCH FILTER
+    // ========================================
+    const searchInput = document.getElementById('edfSearch');
+    const cards = document.querySelectorAll('.edf-card');
+
+    function filterCards() {
+        const term = searchInput.value.toLowerCase().trim();
+        const activeFilter = document.querySelector('.edf-filter-btn.active');
+        const statusFilter = activeFilter ? activeFilter.dataset.filter : 'all';
+
+        cards.forEach(card => {
+            const name = card.dataset.name || '';
+            const status = card.dataset.status || '';
+            const matchName = name.includes(term);
+            const matchStatus = statusFilter === 'all' || status === statusFilter;
+            card.style.display = (matchName && matchStatus) ? '' : 'none';
+        });
+    }
+
+    searchInput.addEventListener('input', filterCards);
+
+    // ========================================
+    // 2. FILTER BUTTONS
+    // ========================================
+    const filterContainer = document.getElementById('edfFilterBtns');
+
+    // Add Online / Offline filter buttons dynamically
+    const onlineBtn = document.createElement('button');
+    onlineBtn.className = 'edf-filter-btn';
+    onlineBtn.dataset.filter = 'online';
+    onlineBtn.textContent = 'Online';
+    filterContainer.appendChild(onlineBtn);
+
+    const offlineBtn = document.createElement('button');
+    offlineBtn.className = 'edf-filter-btn';
+    offlineBtn.dataset.filter = 'offline';
+    offlineBtn.textContent = 'Offline';
+    filterContainer.appendChild(offlineBtn);
+
+    document.querySelectorAll('.edf-filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.edf-filter-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            filterCards();
+        });
+    });
+
+    // ========================================
+    // 3. SPARKLINES (Canvas)
+    // ========================================
+    document.querySelectorAll('.edf-sparkline').forEach(canvas => {
+        const valuesStr = canvas.dataset.values;
+        const isOnline = canvas.dataset.online === 'true';
+        const values = valuesStr.split(',').map(Number);
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width = canvas.parentElement.clientWidth - 20;
+        const h = canvas.height = 36;
+
+        const max = Math.max(...values, 100);
+        const min = Math.min(...values, 0);
+        const range = max - min || 1;
+
+        // Gradient
+        const gradient = ctx.createLinearGradient(0, 0, 0, h);
+        if (isOnline) {
+            gradient.addColorStop(0, 'rgba(102, 187, 106, 0.4)');
+            gradient.addColorStop(1, 'rgba(102, 187, 106, 0.02)');
+        } else {
+            gradient.addColorStop(0, 'rgba(239, 83, 80, 0.4)');
+            gradient.addColorStop(1, 'rgba(239, 83, 80, 0.02)');
+        }
+
+        const stepX = w / (values.length - 1);
+
+        // Fill area
+        ctx.beginPath();
+        ctx.moveTo(0, h);
+        values.forEach((v, i) => {
+            const x = i * stepX;
+            const y = h - ((v - min) / range) * (h - 4) - 2;
+            if (i === 0) ctx.lineTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+        ctx.lineTo(w, h);
+        ctx.closePath();
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        // Line
+        ctx.beginPath();
+        values.forEach((v, i) => {
+            const x = i * stepX;
+            const y = h - ((v - min) / range) * (h - 4) - 2;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+        ctx.strokeStyle = isOnline ? '#66bb6a' : '#ef5350';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Dots
+        values.forEach((v, i) => {
+            const x = i * stepX;
+            const y = h - ((v - min) / range) * (h - 4) - 2;
+            ctx.beginPath();
+            ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+            ctx.fillStyle = isOnline ? '#66bb6a' : '#ef5350';
+            ctx.fill();
+        });
+    });
+
+    // ========================================
+    // 4. LEAFLET MAP (Monocromático Estilizado)
+    // ========================================
+    const mapEl = document.getElementById('edfMap');
+    if (mapEl) {
+        const map = L.map('edfMap', {
+            scrollWheelZoom: false,
+            zoomControl: true,
+        }).setView([-23.565, -46.655], 12);
+
+        // CartoDB Dark tile layer for monocromático look
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+
+        // Markers for each building
+        const buildingsGeo = [
+            {% for building in buildings %}
+            {
+                name: "{{ building.name }}",
+                lat: {{ building.lat }},
+                lng: {{ building.lng }},
+                status: "{{ building.status }}",
+                ping: "{{ building.ping_ms or 'N/A' }}",
+                availability: "{{ building.availability }}",
+                cag: "{{ building.cag_status }}",
+                slug: "{{ building.slug }}"
+            },
+            {% endfor %}
+        ];
+
+        // Custom icon
+        function createIcon(status) {
+            const color = status === 'online' ? '#66bb6a' : '#ef5350';
+            const svgIcon = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="38" viewBox="0 0 28 38">
+                    <defs>
+                        <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+                            <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="${color}" flood-opacity="0.5"/>
+                        </filter>
+                    </defs>
+                    <path d="M14 0 C6.27 0 0 6.27 0 14 C0 24.5 14 38 14 38 C14 38 28 24.5 28 14 C28 6.27 21.73 0 14 0Z" fill="${color}" filter="url(#shadow)"/>
+                    <circle cx="14" cy="14" r="6" fill="#0a192f"/>
+                    <circle cx="14" cy="14" r="3" fill="${color}"/>
+                </svg>`;
+            return L.divIcon({
+                html: svgIcon,
+                className: '',
+                iconSize: [28, 38],
+                iconAnchor: [14, 38],
+                popupAnchor: [0, -38]
+            });
+        }
+
+        buildingsGeo.forEach(b => {
+            const marker = L.marker([b.lat, b.lng], { icon: createIcon(b.status) }).addTo(map);
+            marker.bindPopup(`
+                <div style="font-family: Inter, sans-serif; min-width: 180px;">
+                    <strong style="font-size: 14px;">${b.name}</strong><br>
+                    <span style="color: ${b.status === 'online' ? '#66bb6a' : '#ef5350'}; font-weight: 600;">${b.status.toUpperCase()}</span><br>
+                    <hr style="border: none; border-top: 1px solid #333; margin: 6px 0;">
+                    <small>Ping: <strong>${b.ping}ms</strong></small><br>
+                    <small>Uptime: <strong>${b.availability}%</strong></small><br>
+                    <small>CAG: <strong>${b.cag.toUpperCase()}</strong></small>
+                </div>
+            `);
+        });
+    }
+});
+</script>
+{% endblock %}
